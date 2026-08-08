@@ -256,6 +256,9 @@
             <button class="btn btn-outline-primary" onclick="openModalCategory('inhouse')">
               <i class="fa-solid fa-folder-plus"></i> + Tambah Kategori
             </button>
+            <button class="btn btn-outline-secondary" onclick="exportBarcodeWord()" title="Cetak seluruh label barcode produk ke berkas Word (.docx)">
+              <i class="fa-solid fa-barcode"></i> Cetak Label Barcode (.docx)
+            </button>
             <button class="btn btn-primary" onclick="openModalBarang()">
               <i class="fa-solid fa-plus"></i> Input Barang In-House Baru
             </button>
@@ -1066,9 +1069,10 @@
         </div>
         <p id="barcodeCodeDisplay" style="font-family: monospace; font-weight: 700; letter-spacing: 2px; color: #475569;">PRD-001</p>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="display: flex; gap: 8px; justify-content: flex-end;">
         <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalBarcode')">Tutup</button>
-        <button type="button" class="btn btn-primary" onclick="exportBarcodeWord()"><i class="fa-solid fa-file-word"></i> Export ke Word (.docx)</button>
+        <button type="button" class="btn btn-outline-primary" onclick="exportCurrentBarcodeWord()"><i class="fa-solid fa-file-word"></i> Export Barang Ini (.docx)</button>
+        <button type="button" class="btn btn-primary" onclick="exportBarcodeWord()"><i class="fa-solid fa-file-word"></i> Export Seluruh Barcode (.docx)</button>
       </div>
     </div>
   </div>

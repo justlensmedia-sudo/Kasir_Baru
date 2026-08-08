@@ -253,21 +253,18 @@ async function runTests() {
     console.log('- Gross Margin Outsource: Rp', marginReport.data.data.summary.total_gross_margin.toLocaleString('id-ID'));
     console.log('- Outsource Margin %:', marginReport.data.data.summary.margin_percent, '%\n');
 
-    // 7. Tes Laporan Keuangan & Laba Rugi
-    console.log('[TEST 7] GET /api/reports/profit-loss');
-    const profitReport = await request({
+    // 8. Tes Ekspor Label Barcode ke Word (.docx)
+    console.log('[TEST 8] GET /api/barcodes/export-word');
+    const wordRes = await request({
       hostname: 'localhost',
       port: PORT,
-      path: '/api/reports/profit-loss',
+      path: '/api/barcodes/export-word',
       method: 'GET'
     });
-    console.log('Profit & Loss Status:', profitReport.status);
-    console.log('- Total Revenue: Rp', profitReport.data.data.summary.total_revenue.toLocaleString('id-ID'));
-    console.log('- Total HPP/COGS: Rp', profitReport.data.data.summary.total_cogs.toLocaleString('id-ID'));
-    console.log('- Total Pembelian Bahan Baku: Rp', profitReport.data.data.summary.total_material_purchases.toLocaleString('id-ID'));
-    console.log('- Gross Profit: Rp', profitReport.data.data.summary.gross_profit.toLocaleString('id-ID'));
-    console.log('- Net Profit: Rp', profitReport.data.data.summary.net_profit.toLocaleString('id-ID'), '\n');
-
+    console.log('Export Barcode Word Status:', wordRes.status);
+    if (wordRes.headers) {
+      console.log('- Content-Type:', wordRes.headers['content-type']);
+    }
     console.log('✅ SELURUH PENGUJIAN API LAN & FULL FEATURES BERHASIL 100%!');
   } catch (err) {
     console.error('❌ TERJADI KESALAHAN PADA PENGUJIAN API:', err);

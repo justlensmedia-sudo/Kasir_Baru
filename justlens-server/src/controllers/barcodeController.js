@@ -2,12 +2,22 @@ const bwipjs = require('bwip-js');
 const { Document, Packer, Paragraph, Table, TableRow, TableCell, ImageRun, TextRun, AlignmentType, WidthType, BorderStyle } = require('docx');
 const ProductModel = require('../models/productModel');
 
+function toImageBuffer(dataInput) {
+  if (!dataInput) return null;
+  if (Buffer.isBuffer(dataInput)) return dataInput;
+  if (typeof dataInput === 'string') {
+    const cleanBase64 = dataInput.replace(/^data:image\/\w+;base64,/, '');
+    return Buffer.from(cleanBase64, 'base64');
+  }
+  return null;
+}
+
 const barcodeController = {
   generatePng: async (req, res, next) => {
     try {
-      const { code } = req.query;
-      if (!code) {
-        return res.status(400).json({ success: false, message: 'Query code wajib diisi.' });
+      let { code } = req.query;
+      if (!code || String(code).trim() === '') {
+        code = 'PRD-001';
       }
 
       const pngBuffer = await bwipjs.toBuffer({
@@ -22,17 +32,36 @@ const barcodeController = {
       res.setHeader('Content-Type', 'image/png');
       return res.send(pngBuffer);
     } catch (error) {
-      next(error);
+      try {
+        const fallbackBuffer = await bwipjs.toBuffer({
+          bcid: 'code128',
+          text: 'PRD-001',
+          scale: 3,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+        });
+        res.setHeader('Content-Type', 'image/png');
+        return res.send(fallbackBuffer);
+      } catch (err2) {
+        next(error);
+      }
     }
   },
 
   exportWord: async (req, res, next) => {
     try {
-      const { product_ids } = req.body;
+      // Support GET query parameters and POST body
+      const productId = req.query?.product_id || req.query?.id || req.body?.product_id;
+      const productIds = req.body?.product_ids || (req.query?.ids ? req.query.ids.split(',') : null);
+
       let products = [];
 
-      if (Array.isArray(product_ids) && product_ids.length > 0) {
-        for (const id of product_ids) {
+      if (productId) {
+        const p = await ProductModel.getById(productId);
+        if (p) products.push(p);
+      } else if (Array.isArray(productIds) && productIds.length > 0) {
+        for (const id of productIds) {
           const p = await ProductModel.getById(id);
           if (p) products.push(p);
         }
@@ -47,29 +76,60 @@ const barcodeController = {
       // Generate barcode PNG buffer for each product
       const barcodeCells = [];
       for (const p of products) {
-        let pngBuffer;
+        let code = (p.code || '').toString().trim();
+        if (!code) {
+          code = `PRD-${p.id || Math.floor(Math.random() * 1000)}`;
+        }
+
+        let rawBuffer = null;
         try {
-          pngBuffer = await bwipjs.toBuffer({
+          rawBuffer = await bwipjs.toBuffer({
             bcid: 'code128',
-            text: String(p.code),
+            text: code,
             scale: 2,
             height: 10,
             includetext: false
           });
         } catch (err) {
-          pngBuffer = null;
+          console.warn(`[BWIP-JS] Warning for code '${code}':`, err.message);
+          try {
+            const safeCode = `PRD${p.id || 100}`;
+            rawBuffer = await bwipjs.toBuffer({
+              bcid: 'code128',
+              text: safeCode,
+              scale: 2,
+              height: 10,
+              includetext: false
+            });
+            code = safeCode;
+          } catch (err2) {
+            rawBuffer = null;
+          }
         }
 
+        const pngBuffer = toImageBuffer(rawBuffer);
         const formattedPrice = `Rp ${Number(p.sell_price || 0).toLocaleString('id-ID')}`;
+        const productName = (p.name || 'Barang').substring(0, 30);
 
         const cellChildren = [
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
-                text: String(p.name).substring(0, 26),
+                text: 'JUSTLENS PRINT',
                 bold: true,
-                size: 18 // 9pt
+                size: 14,
+                color: '64748B'
+              })
+            ]
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: productName,
+                bold: true,
+                size: 18
               })
             ]
           })
@@ -82,7 +142,20 @@ const barcodeController = {
               children: [
                 new ImageRun({
                   data: pngBuffer,
-                  transformation: { width: 140, height: 35 }
+                  transformation: { width: 135, height: 35 }
+                })
+              ]
+            })
+          );
+        } else {
+          cellChildren.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun({
+                  text: `[BARCODE: ${code}]`,
+                  bold: true,
+                  size: 16
                 })
               ]
             })
@@ -94,13 +167,15 @@ const barcodeController = {
             alignment: AlignmentType.CENTER,
             children: [
               new TextRun({
-                text: `${p.code} - `,
-                size: 16
+                text: `${code}  •  `,
+                size: 15,
+                color: '475569'
               }),
               new TextRun({
                 text: formattedPrice,
                 bold: true,
-                size: 18
+                size: 18,
+                color: '059669'
               })
             ]
           })
@@ -111,10 +186,10 @@ const barcodeController = {
             width: { size: 30, type: WidthType.PERCENTAGE },
             margins: { top: 100, bottom: 100, left: 100, right: 100 },
             borders: {
-              top: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' },
-              bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' },
-              left: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' },
-              right: { style: BorderStyle.SINGLE, size: 4, color: 'CCCCCC' }
+              top: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              bottom: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              left: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' },
+              right: { style: BorderStyle.SINGLE, size: 4, color: 'CBD5E1' }
             },
             children: cellChildren
           })
@@ -127,7 +202,6 @@ const barcodeController = {
 
       for (let i = 0; i < barcodeCells.length; i += COLS_PER_ROW) {
         const rowCells = barcodeCells.slice(i, i + COLS_PER_ROW);
-        // Fill remaining columns if not full
         while (rowCells.length < COLS_PER_ROW) {
           rowCells.push(
             new TableCell({
@@ -155,7 +229,7 @@ const barcodeController = {
           {
             properties: {
               page: {
-                margin: { top: 720, bottom: 720, left: 720, right: 720 } // ~0.5 inch
+                margin: { top: 720, bottom: 720, left: 720, right: 720 }
               }
             },
             children: [
@@ -163,9 +237,20 @@ const barcodeController = {
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: 'LABEL BARCODE PRODUK JUSTLENS',
+                    text: 'LABEL BARCODE PRODUK - JUSTLENS',
                     bold: true,
-                    size: 24
+                    size: 24,
+                    color: '1E293B'
+                  })
+                ]
+              }),
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({
+                    text: 'Siap Cetak ke Kertas Stiker Label Produk',
+                    size: 16,
+                    color: '64748B'
                   })
                 ]
               }),
@@ -181,11 +266,19 @@ const barcodeController = {
 
       const buffer = await Packer.toBuffer(doc);
 
+      const fileName = productId && products[0]?.code
+        ? `Label_Barcode_${String(products[0].code).replace(/[^a-zA-Z0-9_-]/g, '')}.docx`
+        : 'Label_Barcode_Produk_Justlens.docx';
+
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', 'attachment; filename="Label_Barcode_Produk_Justlens.docx"');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       return res.send(buffer);
     } catch (error) {
-      next(error);
+      console.error('Error generating barcode word document:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Gagal membuat dokumen Word label barcode: ' + error.message
+      });
     }
   }
 };

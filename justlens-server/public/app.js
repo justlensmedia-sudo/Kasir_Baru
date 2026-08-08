@@ -422,7 +422,7 @@ function renderBarangTable() {
         <td><strong class="text-success">${formatRupiah(b.sell_price)}</strong></td>
         <td>${stockBadge}</td>
         <td class="text-center">
-          <button class="btn btn-icon btn-info" onclick="previewBarcode('${b.code}', '${b.name.replace(/'/g, "\\'")}', ${b.sell_price})" title="Preview Barcode">
+          <button class="btn btn-icon btn-info" onclick="previewBarcode('${b.code}', '${b.name.replace(/'/g, "\\'")}', ${b.sell_price}, ${b.id})" title="Preview Barcode">
             <i class="fa-solid fa-barcode"></i>
           </button>
           <button class="btn btn-icon btn-edit" onclick="openModalBarang(${b.id})" title="Edit Barang">
@@ -1479,7 +1479,8 @@ async function loadActivityLogs() {
 /* ==========================================================================
    9. GENERATOR BARCODE & EKSPOR WORD (.docx)
    ========================================================================== */
-function previewBarcode(code, name, price) {
+function previewBarcode(code, name, price, id = null) {
+  state.previewProductId = id;
   document.getElementById('barcodeProductName').textContent = name;
   document.getElementById('barcodeProductPrice').textContent = formatRupiah(price);
   document.getElementById('barcodeCodeDisplay').textContent = code;
@@ -1487,13 +1488,25 @@ function previewBarcode(code, name, price) {
   openModal('modalBarcode');
 }
 
-async function exportBarcodeWord() {
+function exportBarcodeWord(productId = null) {
   try {
-    showToast('Sedang membuat file Microsoft Word (.docx)...');
-    window.location.href = `${API_BASE}/barcodes/export-word`;
+    showToast('Sedang mengunduh file Microsoft Word (.docx)...');
+    let url = `${API_BASE}/barcodes/export-word`;
+    if (productId) {
+      url += `?product_id=${productId}`;
+    }
+    window.location.href = url;
   } catch (err) {
     showToast('Gagal ekspor barcode ke Word: ' + err.message, 'error');
   }
+}
+
+function exportCurrentBarcodeWord() {
+  if (!state.previewProductId) {
+    exportBarcodeWord(null);
+    return;
+  }
+  exportBarcodeWord(state.previewProductId);
 }
 
 /* ==========================================================================
