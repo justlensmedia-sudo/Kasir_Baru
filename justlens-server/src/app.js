@@ -27,9 +27,21 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static web app (Backoffice Dashboard) & Uploaded files (Logos) from public folder
-app.use(express.static(path.join(__dirname, '../public')));
-app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+const fs = require('fs');
+
+const isPkg = typeof process.pkg !== 'undefined';
+const publicDir = path.join(__dirname, '../public');
+const uploadsDir = isPkg 
+  ? path.join(path.dirname(process.execPath), 'uploads')
+  : path.join(__dirname, '../public/uploads');
+
+if (!fs.existsSync(uploadsDir)) {
+  try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch (e) {}
+}
+
+// Serve static web app (Backoffice Dashboard) & Uploaded files (Logos)
+app.use(express.static(publicDir));
+app.use('/uploads', express.static(uploadsDir));
 
 // Root route serves Admin Dashboard web app
 app.get('/', (req, res) => {

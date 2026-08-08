@@ -4,6 +4,8 @@ const { exec } = require('child_process');
 const { query, get, run } = require('../config/database');
 const { resetDatabase } = require('../database/clear-dummy');
 
+const isPkg = typeof process.pkg !== 'undefined';
+
 const settingController = {
   getSettings: async (req, res, next) => {
     try {
@@ -14,7 +16,10 @@ const settingController = {
       });
 
       // Default logo path check
-      const logoPath = path.join(__dirname, '../../public/uploads/logo.png');
+      const logoPath = isPkg
+        ? path.join(path.dirname(process.execPath), 'uploads/logo.png')
+        : path.join(__dirname, '../../public/uploads/logo.png');
+
       const logoExists = fs.existsSync(logoPath);
 
       if (!settings.logo_url && logoExists) {
@@ -73,7 +78,7 @@ const settingController = {
 
   backupGit: async (req, res, next) => {
     try {
-      const rootRepoDir = path.resolve(__dirname, '../../../'); // root of justlens-system
+      const rootRepoDir = isPkg ? path.dirname(process.execPath) : path.resolve(__dirname, '../../../');
       const commitMessage = `Auto Backup System & Database: ${new Date().toLocaleString('id-ID')}`;
 
       console.log(`📡 Memulai proses Git Backup di: ${rootRepoDir}`);

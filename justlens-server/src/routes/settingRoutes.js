@@ -5,14 +5,25 @@ const fs = require('fs');
 const multer = require('multer');
 const settingController = require('../controllers/settingController');
 
-const uploadsDir = path.join(__dirname, '../../public/uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+const isPkg = typeof process.pkg !== 'undefined';
+const baseUploadsDir = isPkg
+  ? path.join(path.dirname(process.execPath), 'uploads')
+  : path.join(__dirname, '../../public/uploads');
+
+if (!fs.existsSync(baseUploadsDir)) {
+  try {
+    fs.mkdirSync(baseUploadsDir, { recursive: true });
+  } catch (e) {
+    console.error('Failed to create uploads directory:', e.message);
+  }
 }
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadsDir);
+    if (!fs.existsSync(baseUploadsDir)) {
+      try { fs.mkdirSync(baseUploadsDir, { recursive: true }); } catch (e) {}
+    }
+    cb(null, baseUploadsDir);
   },
   filename: (req, file, cb) => {
     cb(null, 'logo.png');

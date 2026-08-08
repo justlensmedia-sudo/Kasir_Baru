@@ -9,9 +9,13 @@ console.log('==================================================');
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 
-// Ensure dist directory exists
+// Ensure dist & uploads directory exists
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
+}
+const distUploadsDir = path.join(distDir, 'uploads');
+if (!fs.existsSync(distUploadsDir)) {
+  fs.mkdirSync(distUploadsDir, { recursive: true });
 }
 
 // Ensure node_sqlite3.node exists in node_modules/sqlite3/build/ before pkg runs
