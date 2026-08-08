@@ -57,6 +57,12 @@
           <span>Menu Laporan Transaksi</span>
         </a>
 
+        <div class="nav-section">EXCEL & DOKUMEN</div>
+        <a href="#excel" class="nav-link" data-tab="excel">
+          <i class="fa-solid fa-file-excel"></i>
+          <span>Kelola Data via Excel</span>
+        </a>
+
         <div class="nav-section">PENGATURAN & BRANDING</div>
         <a href="#pengaturan" class="nav-link" data-tab="pengaturan">
           <i class="fa-solid fa-gear"></i>
@@ -537,6 +543,98 @@
               <i class="fa-solid fa-trash-can"></i> Bersihkan / Reset Database Sekarang
             </button>
           </div>
+        </div>
+      </section>
+
+      <!-- TAB EXCEL: KELOLA DATA VIA EXCEL (EXPORT & IMPORT SERAGAM) -->
+      <section id="tab-excel" class="tab-page">
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
+            <i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Kelola Data Master via Excel (.xlsx)
+          </h3>
+          <p class="subtitle">Ekspor data master ke Excel, atau impor file Excel dengan format kolom baku (Otomatis Insert jika baru & Update jika kode/ID sudah ada).</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+
+          <!-- Card 1: Master Barang -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-box-open" style="color: var(--primary);"></i> 1. Master Barang (In-House & Outsource)</h3>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+              <p class="subtitle" style="font-size: 12px; line-height: 1.5;">Format Kolom: <code>Kode_Barcode</code>, <code>Nama_Barang</code>, <code>Kategori</code>, <code>Harga_Modal</code>, <code>Harga_Jual</code>, <code>Stok_Awal</code>, <code>Satuan</code></p>
+              
+              <div>
+                <button class="btn btn-outline-primary" style="width: 100%; font-weight: 600;" onclick="window.location.href='/api/products/template-excel'">
+                  <i class="fa-solid fa-file-arrow-down"></i> Download Template & Data Barang (.xlsx)
+                </button>
+              </div>
+
+              <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 4px 0;" />
+
+              <form onsubmit="handleExcelImportSubmit(event, '/api/products/import-excel', 'btnImportProduct')" style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="font-weight: 600; font-size: 12px;">Unggah File Excel Barang:</label>
+                <input type="file" accept=".xlsx, .xls" required class="form-control" style="font-size: 12px;" />
+                <button type="submit" class="btn btn-success" id="btnImportProduct" style="font-weight: 700;">
+                  <i class="fa-solid fa-file-arrow-up"></i> Import / Upload Excel Barang
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Card 2: Data Supplier -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-truck-field" style="color: var(--warning);"></i> 2. Data Supplier Bahan Baku</h3>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+              <p class="subtitle" style="font-size: 12px; line-height: 1.5;">Format Kolom: <code>ID_Supplier</code>, <code>Nama_Supplier</code>, <code>No_Telepon</code>, <code>Alamat</code></p>
+              
+              <div>
+                <button class="btn btn-outline-warning" style="width: 100%; font-weight: 600;" onclick="window.location.href='/api/suppliers/export-excel'">
+                  <i class="fa-solid fa-file-arrow-down"></i> Download Template & Data Supplier (.xlsx)
+                </button>
+              </div>
+
+              <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 4px 0;" />
+
+              <form onsubmit="handleExcelImportSubmit(event, '/api/suppliers/import-excel', 'btnImportSupplier')" style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="font-weight: 600; font-size: 12px;">Unggah File Excel Supplier:</label>
+                <input type="file" accept=".xlsx, .xls" required class="form-control" style="font-size: 12px;" />
+                <button type="submit" class="btn btn-warning" id="btnImportSupplier" style="font-weight: 700; color: #fff;">
+                  <i class="fa-solid fa-file-arrow-up"></i> Import / Upload Excel Supplier
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Card 3: Pricelist & Vendor Outsource -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-industry" style="color: #8b5cf6;"></i> 3. Pricelist & Vendor Outsource</h3>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+              <p class="subtitle" style="font-size: 12px; line-height: 1.5;">Workbook 2 Sheet: <code>Vendor_Outsource</code> (Biaya Modal/m²) & <code>Finishing_Options</code> (Harga Finishing)</p>
+              
+              <div>
+                <button class="btn btn-outline-secondary" style="width: 100%; font-weight: 600;" onclick="window.location.href='/api/vendors/export-excel'">
+                  <i class="fa-solid fa-file-arrow-down"></i> Download Pricelist & Vendor (.xlsx)
+                </button>
+              </div>
+
+              <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 4px 0;" />
+
+              <form onsubmit="handleExcelImportSubmit(event, '/api/vendors/import-excel', 'btnImportVendor')" style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="font-weight: 600; font-size: 12px;">Unggah File Excel Pricelist/Vendor:</label>
+                <input type="file" accept=".xlsx, .xls" required class="form-control" style="font-size: 12px;" />
+                <button type="submit" class="btn btn-primary" id="btnImportVendor" style="font-weight: 700;">
+                  <i class="fa-solid fa-file-arrow-up"></i> Import / Upload Excel Pricelist/Vendor
+                </button>
+              </form>
+            </div>
+          </div>
+
         </div>
       </section>
     </main>

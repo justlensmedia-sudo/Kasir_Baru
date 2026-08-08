@@ -122,41 +122,56 @@ const productController = {
 
   downloadTemplateExcel: async (req, res, next) => {
     try {
-      const templateData = [
-        {
-          Kode_Barcode: 'PRD-001',
-          Nama_Barang: 'Kertas HVS A4 80gsm (Rim)',
-          Kategori: 'Cetak Lembaran',
-          Harga_Modal: 35000,
-          Harga_Jual: 55000,
-          Stok_Awal: 50,
-          Satuan: 'Rim'
-        },
-        {
-          Kode_Barcode: 'PRD-OUT-001',
-          Nama_Barang: 'Banner Flexi 280gr Standard',
-          Kategori: 'Banner Outdoor',
-          Harga_Modal: 12000,
-          Harga_Jual: 25000,
-          Stok_Awal: 999,
-          Satuan: 'm²'
-        },
-        {
-          Kode_Barcode: 'PRD-ATK-001',
-          Nama_Barang: 'Pulpen Gel Hitam 0.5mm',
-          Kategori: 'ATK',
-          Harga_Modal: 2500,
-          Harga_Jual: 5000,
-          Stok_Awal: 24,
-          Satuan: 'Pcs'
-        }
-      ];
+      const dbProducts = await ProductModel.getAll();
+      let excelRows = [];
 
-      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      if (dbProducts && dbProducts.length > 0) {
+        excelRows = dbProducts.map((p) => ({
+          Kode_Barcode: p.code,
+          Nama_Barang: p.name,
+          Kategori: p.category,
+          Harga_Modal: p.base_price || 0,
+          Harga_Jual: p.sell_price || 0,
+          Stok_Awal: p.stock || 0,
+          Satuan: p.unit || 'Pcs'
+        }));
+      } else {
+        excelRows = [
+          {
+            Kode_Barcode: 'PRD-001',
+            Nama_Barang: 'Kertas HVS A4 80gsm (Rim)',
+            Kategori: 'Cetak Lembaran',
+            Harga_Modal: 35000,
+            Harga_Jual: 55000,
+            Stok_Awal: 50,
+            Satuan: 'Rim'
+          },
+          {
+            Kode_Barcode: 'PRD-OUT-001',
+            Nama_Barang: 'Banner Flexi 280gr Standard',
+            Kategori: 'Banner Outdoor',
+            Harga_Modal: 12000,
+            Harga_Jual: 25000,
+            Stok_Awal: 999,
+            Satuan: 'm²'
+          },
+          {
+            Kode_Barcode: 'PRD-ATK-001',
+            Nama_Barang: 'Pulpen Gel Hitam 0.5mm',
+            Kategori: 'ATK',
+            Harga_Modal: 2500,
+            Harga_Jual: 5000,
+            Stok_Awal: 24,
+            Satuan: 'Pcs'
+          }
+        ];
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(excelRows);
       worksheet['!cols'] = [
         { wch: 18 },
-        { wch: 35 },
-        { wch: 20 },
+        { wch: 38 },
+        { wch: 22 },
         { wch: 15 },
         { wch: 15 },
         { wch: 12 },
@@ -164,12 +179,12 @@ const productController = {
       ];
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Template_Produk');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Master_Barang');
 
       const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename="Template_Import_Barang_Justlens.xlsx"');
+      res.setHeader('Content-Disposition', 'attachment; filename="Data_Master_Barang_Justlens.xlsx"');
       return res.send(buffer);
     } catch (error) {
       next(error);

@@ -22,8 +22,62 @@ const pageTitles = {
   barang: { title: 'Menu Barang (In-House)', subtitle: 'Kelola stok kertas, ATK, dan produk cetak mandiri' },
   vendor: { title: 'Menu Vendor Outsource', subtitle: 'Kelola mitra cetak luar, spanduk, banner & margin HPP' },
   laporan: { title: 'Menu Laporan Transaksi & Keuangan', subtitle: 'Riwayat transaksi penjualan dan analisis Laba Kotor' },
+  excel: { title: 'Kelola Data via Excel', subtitle: 'Ekspor data master & impor massal via file Excel (.xlsx)' },
   pengaturan: { title: 'Pengaturan & Backup System', subtitle: 'Branding logo usaha, sinkronisasi GitHub, dan manajemen database' }
 };
+
+// Helper: Handle Excel Form Submissions
+async function handleExcelImportSubmit(event, endpointUrl, buttonId) {
+  event.preventDefault();
+  const form = event.target;
+  const fileInput = form.querySelector('input[type="file"]');
+  const btn = document.getElementById(buttonId);
+
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    showToast('Harap pilih file Excel terlebih dahulu.', 'danger');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', fileInput.files[0]);
+
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengimpor...';
+
+  try {
+    const headers = {};
+    if (state.token) {
+      headers['Authorization'] = `Bearer ${state.token}`;
+    }
+
+    const response = await fetch(endpointUrl, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    const result = await response.json();
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+
+    if (response.ok && result.success) {
+      showToast(result.message || 'Berhasil mengimpor data via Excel!');
+      form.reset();
+      // Reload dashboard data
+      loadDashboardOverview();
+      loadSuppliersData();
+      loadBarangData();
+      loadVendorsData();
+    } else {
+      showToast(result.message || 'Gagal mengimpor file Excel.', 'danger');
+    }
+  } catch (error) {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+    showToast('Error saat mengunggah file Excel: ' + error.message, 'danger');
+  }
+}
 
 // Helper: Format Rupiah
 function formatRupiah(amount) {
