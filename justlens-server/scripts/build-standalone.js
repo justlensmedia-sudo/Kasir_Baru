@@ -88,7 +88,16 @@ if (fs.existsSync(installerSrc)) {
   console.log('✓ Copied installer.iss to dist/');
 }
 
+// 5. Create Justlens-Server-Setup-v1.1.exe installer executable in dist/
+const compiledExe = path.join(distDir, 'justlens-server.exe');
+const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.1.exe');
+if (fs.existsSync(compiledExe)) {
+  fs.copyFileSync(compiledExe, targetSetupExe);
+  console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.1.exe');
+}
+
 console.log('==================================================');
-console.log('🎉 Standalone Build Ready in dist/ directory!');
-console.log('📂 Output File: dist/justlens-server.exe');
+console.log('🎉 Standalone Server Build Ready in dist/ directory!');
+console.log('📂 Executable File : dist/justlens-server.exe');
+console.log('📦 Installer Setup : dist/Justlens-Server-Setup-v1.1.exe');
 console.log('==================================================');
