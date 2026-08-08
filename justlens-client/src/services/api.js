@@ -66,6 +66,23 @@ export const syncMasterData = async () => {
   }
 };
 
+export const getShopLogo = async () => {
+  const baseUrl = getServerUrl();
+  const rootUrl = baseUrl.replace(/\/api\/?$/, '');
+  try {
+    const response = await fetch(`${baseUrl}/settings/logo`);
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success && result.data && result.data.logo_url) {
+        return `${rootUrl}${result.data.logo_url}`;
+      }
+    }
+    return `${rootUrl}/uploads/logo.png`;
+  } catch (error) {
+    return `${rootUrl}/uploads/logo.png`;
+  }
+};
+
 export const createTransaction = async (payload) => {
   const baseUrl = getServerUrl();
   try {

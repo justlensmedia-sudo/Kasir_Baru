@@ -247,6 +247,10 @@ const productController = {
       const finishingOptions = await FinishingModel.getAll();
       const vendors = await VendorModel.getAll();
 
+      const { get } = require('../config/database');
+      const logoRow = await get("SELECT value FROM settings WHERE key = 'logo_url'");
+      const logo_url = logoRow ? logoRow.value : '/uploads/logo.png';
+
       res.json({
         success: true,
         message: 'Master data berhasil disinkronisasi.',
@@ -255,6 +259,7 @@ const productController = {
           materials,
           finishing_options: finishingOptions,
           vendors,
+          logo_url,
           synced_at: new Date().toISOString()
         }
       });

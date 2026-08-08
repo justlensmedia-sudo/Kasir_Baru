@@ -33,6 +33,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get('/', settingController.getSettings);
+router.get('/logo', settingController.getLogo);
 router.post('/upload-logo', upload.single('logo'), settingController.uploadLogo);
 router.post('/reset-database', settingController.resetDatabase);
 router.post('/backup-git', settingController.backupGit);

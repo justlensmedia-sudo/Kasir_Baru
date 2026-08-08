@@ -41,6 +41,30 @@ const settingController = {
     }
   },
 
+  getLogo: async (req, res, next) => {
+    try {
+      const row = await get("SELECT value FROM settings WHERE key = 'logo_url'");
+      let logoUrl = row ? row.value : null;
+
+      const logoPath = isPkg
+        ? path.join(path.dirname(process.execPath), 'uploads/logo.png')
+        : path.join(__dirname, '../../public/uploads/logo.png');
+
+      if (!logoUrl && fs.existsSync(logoPath)) {
+        logoUrl = '/uploads/logo.png';
+      }
+
+      res.json({
+        success: true,
+        data: {
+          logo_url: logoUrl || null
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   uploadLogo: async (req, res, next) => {
     try {
       if (!req.file) {

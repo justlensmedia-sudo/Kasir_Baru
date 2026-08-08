@@ -11,9 +11,11 @@ export default function ReceiptPrintModal({ isOpen, onClose, transaction, defaul
   const [logoUrl, setLogoUrl] = useState(null);
 
   useEffect(() => {
-    const serverUrl = localStorage.getItem('justlens_server_url') || 'http://localhost:5000/api';
-    const rootUrl = serverUrl.replace(/\/api\/?$/, '');
-    setLogoUrl(`${rootUrl}/uploads/logo.png`);
+    if (isOpen) {
+      import('../services/api').then(({ getShopLogo }) => {
+        getShopLogo().then((url) => setLogoUrl(url));
+      });
+    }
   }, [isOpen]);
 
   useEffect(() => {

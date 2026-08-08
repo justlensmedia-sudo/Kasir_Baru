@@ -20,21 +20,11 @@ export default function Header({
 
   useEffect(() => {
     if (isConnected && serverUrl) {
-      const rootUrl = serverUrl.replace(/\/api\/?$/, '');
-      fetch(`${serverUrl.endsWith('/api') ? serverUrl : serverUrl + '/api'}/settings`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.data && data.data.logo_url) {
-            setLogoUrl(`${rootUrl}${data.data.logo_url}`);
-          } else {
-            setLogoUrl(`${rootUrl}/uploads/logo.png`);
-          }
-        })
-        .catch(() => {
-          setLogoUrl(`${rootUrl}/uploads/logo.png`);
-        });
+      import('../services/api').then(({ getShopLogo }) => {
+        getShopLogo().then((url) => setLogoUrl(url));
+      });
     }
-  }, [isConnected, serverUrl]);
+  }, [isConnected, serverUrl, isSyncing]);
 
   return (
     <header className="bg-slate-900 border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-md">
