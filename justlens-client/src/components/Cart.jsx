@@ -44,6 +44,10 @@ export default function Cart({
       setErrorMessage('Jumlah DP (Down Payment) harus lebih dari 0.');
       return;
     }
+    if (cartItems.some((item) => !item.qty || Number(item.qty) < 1)) {
+      setErrorMessage('Jumlah kuantitas item tidak boleh kurang dari 1.');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -190,24 +194,48 @@ export default function Cart({
 
               {/* Quantity Controls & Price */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
-                <div className="flex items-center space-x-1.5 bg-slate-900 px-2 py-1 rounded-lg border border-slate-800">
+                <div className="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
                   <button
-                    onClick={() => onUpdateQty(index, item.qty - 1)}
-                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded font-bold flex items-center justify-center text-xs"
+                    type="button"
+                    onClick={() => onUpdateQty(index, Math.max(1, (Number(item.qty) || 1) - 1))}
+                    disabled={Number(item.qty) <= 1}
+                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:hover:bg-slate-800 text-white rounded font-bold flex items-center justify-center text-xs transition-colors"
+                    title="Kurangi kuantitas"
                   >
                     -
                   </button>
-                  <span className="font-bold text-white px-2 font-mono">{item.qty}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.qty}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        onUpdateQty(index, '');
+                      } else {
+                        const parsed = parseInt(val, 10);
+                        onUpdateQty(index, isNaN(parsed) ? 1 : Math.max(1, parsed));
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!item.qty || Number(item.qty) < 1 || isNaN(Number(item.qty))) {
+                        onUpdateQty(index, 1);
+                      }
+                    }}
+                    className="w-16 bg-slate-950 border border-slate-700 focus:border-cyan-500 rounded px-1.5 py-0.5 text-center font-mono font-bold text-xs text-white outline-none focus:ring-1 focus:ring-cyan-500"
+                  />
                   <button
-                    onClick={() => onUpdateQty(index, item.qty + 1)}
-                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded font-bold flex items-center justify-center text-xs"
+                    type="button"
+                    onClick={() => onUpdateQty(index, (Number(item.qty) || 0) + 1)}
+                    className="w-5 h-5 bg-slate-800 hover:bg-slate-700 text-white rounded font-bold flex items-center justify-center text-xs transition-colors"
+                    title="Tambah kuantitas"
                   >
                     +
                   </button>
                 </div>
 
                 <span className="font-bold text-emerald-400 font-mono">
-                  Rp {item.subtotal.toLocaleString('id-ID')}
+                  Rp {(Number(item.subtotal) || 0).toLocaleString('id-ID')}
                 </span>
               </div>
             </div>

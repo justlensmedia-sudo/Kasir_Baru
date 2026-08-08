@@ -91,12 +91,10 @@ export default function App() {
       );
 
       if (existingIdx >= 0) {
-        const updated = [...cartItems];
-        updated[existingIdx].qty += 1;
-        updated[existingIdx].subtotal = updated[existingIdx].qty * updated[existingIdx].price;
-        setCartItems(updated);
+        handleUpdateCartQty(existingIdx, (Number(cartItems[existingIdx].qty) || 0) + 1);
       } else {
         const price = Number(product.sell_price || 0);
+        const vendorCostPerUnit = Boolean(product.is_outsource) ? Number(product.base_price || 0) : 0;
         setCartItems((prev) => [
           ...prev,
           {
@@ -111,8 +109,11 @@ export default function App() {
             area_m2: 0,
             qty: 1,
             price: price,
+            unit_price: price,
             subtotal: price,
-            vendor_cost: Boolean(product.is_outsource) ? Number(product.base_price || 0) : 0,
+            vendor_cost: vendorCostPerUnit,
+            unit_vendor_cost: vendorCostPerUnit,
+            tiered_prices: product.tiered_prices || null,
           }
         ]);
       }
@@ -121,19 +122,64 @@ export default function App() {
 
   // Add item from Printing Calculator
   const handleAddFromCalculator = (cartItem) => {
-    setCartItems((prev) => [...prev, cartItem]);
+    const qty = Math.max(1, Number(cartItem.qty) || 1);
+    const unitPrice = cartItem.price; // calculated unit price from modal
+    const unitVendorCost = cartItem.is_outsource
+      ? (qty > 0 ? (cartItem.vendor_cost / qty) : 0)
+      : 0;
+
+    setCartItems((prev) => [
+      ...prev,
+      {
+        ...cartItem,
+        unit_price: unitPrice,
+        unit_vendor_cost: unitVendorCost,
+      }
+    ]);
   };
 
   // Cart operations
   const handleUpdateCartQty = (index, newQty) => {
-    if (newQty <= 0) {
-      handleRemoveCartItem(index);
-      return;
-    }
-    const updated = [...cartItems];
-    updated[index].qty = newQty;
-    updated[index].subtotal = newQty * updated[index].price;
-    setCartItems(updated);
+    const isNumber = typeof newQty === 'number' || (typeof newQty === 'string' && newQty.trim() !== '');
+    const parsedQty = isNumber ? parseInt(newQty, 10) : '';
+    const validQty = parsedQty !== '' && !isNaN(parsedQty) ? Math.max(1, parsedQty) : '';
+
+    setCartItems((prevItems) => {
+      const updated = [...prevItems];
+      const item = updated[index];
+      if (!item) return prevItems;
+
+      const numericQty = validQty === '' ? 0 : validQty;
+      
+      // Tiered Pricing / Diskon Grosir adjustment if available
+      let unitPrice = item.unit_price !== undefined ? item.unit_price : item.price;
+      if (item.tiered_prices && Array.isArray(item.tiered_prices) && item.tiered_prices.length > 0) {
+        const sortedTiers = [...item.tiered_prices].sort((a, b) => b.min_qty - a.min_qty);
+        const matchedTier = sortedTiers.find((tier) => numericQty >= tier.min_qty);
+        if (matchedTier) {
+          unitPrice = matchedTier.unit_price;
+        }
+      }
+
+      const unitVendorCost = item.unit_vendor_cost !== undefined
+        ? item.unit_vendor_cost
+        : (item.qty > 0 ? item.vendor_cost / item.qty : 0);
+
+      const subtotal = Math.round(unitPrice * numericQty);
+      const vendor_cost = Math.round(unitVendorCost * numericQty);
+
+      updated[index] = {
+        ...item,
+        qty: validQty,
+        price: unitPrice,
+        subtotal,
+        vendor_cost,
+        unit_vendor_cost: unitVendorCost,
+        unit_price: unitPrice,
+      };
+
+      return updated;
+    });
   };
 
   const handleRemoveCartItem = (index) => {
