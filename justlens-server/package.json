@@ -1,0 +1,46 @@
+{
+  "name": "justlens-server",
+  "version": "1.0.0",
+  "description": "Justlens Server - Backoffice & REST API",
+  "main": "server.js",
+  "bin": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "migrate": "node src/database/migrate.js",
+    "seed": "node src/database/seed.js",
+    "clear-dummy": "node src/database/clear-dummy.js",
+    "test": "node test-api.js",
+    "build:exe": "node scripts/build-standalone.js"
+  },
+  "pkg": {
+    "scripts": [
+      "src/**/*.js"
+    ],
+    "assets": [
+      "public/**/*",
+      "node_modules/sqlite3/build/Release/node_sqlite3.node",
+      "node_modules/sqlite3/build/node_sqlite3.node"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.22.0"
+  }
+}

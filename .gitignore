@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build & Release outputs
+dist/
+**/dist/
+release/
+**/release/
+build/
+**/build/
+
+# Temp & Cache
+.env
+*.log
+*.tmp
+.DS_Store
+d:/electron-builder-cache
+d:/electron-cache
+
+# Local IDE & OS
+.vscode/
+.idea/
+Thumbs.db

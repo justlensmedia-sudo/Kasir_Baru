@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Justlens - Backoffice & Dashboard Admin</title>
+
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <i class="fa-solid fa-print"></i>
+        </div>
+        <div class="brand-info">
+          <h1>Justlens Admin</h1>
+          <span class="badge badge-server"><i class="fa-solid fa-server"></i> Port 5000</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-section">UTAMA</div>
+        <a href="#overview" class="nav-link active" data-tab="overview">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard Overview</span>
+        </a>
+
+        <div class="nav-section">MANAJEMEN MASTER</div>
+        <a href="#supplier" class="nav-link" data-tab="supplier">
+          <i class="fa-solid fa-truck-field"></i>
+          <span>Menu Supplier</span>
+        </a>
+        <a href="#barang" class="nav-link" data-tab="barang">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Menu Barang (In-House)</span>
+        </a>
+        <a href="#vendor" class="nav-link" data-tab="vendor">
+          <i class="fa-solid fa-industry"></i>
+          <span>Menu Vendor Outsource</span>
+        </a>
+
+        <div class="nav-section">PELAPORAN & KEUANGAN</div>
+        <a href="#laporan" class="nav-link" data-tab="laporan">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>Menu Laporan Transaksi</span>
+        </a>
+
+        <div class="nav-section">PENGATURAN & BRANDING</div>
+        <a href="#pengaturan" class="nav-link" data-tab="pengaturan">
+          <i class="fa-solid fa-gear"></i>
+          <span>Pengaturan & Backup</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-status">
+          <div class="user-avatar"><i class="fa-solid fa-user-shield"></i></div>
+          <div class="user-details">
+            <span class="user-name" id="currentUserDisplay">Administrator</span>
+            <span class="user-role" id="currentRoleDisplay">admin</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Header Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h2 id="pageTitle">Dashboard Overview</h2>
+          <p class="subtitle" id="pageSubtitle">Ringkasan statistik & performa sistem Justlens</p>
+        </div>
+        <div class="topbar-right">
+          <div class="server-status" id="serverStatusBadge">
+            <span class="dot dot-online"></span>
+            <span class="status-text">Server Connected</span>
+          </div>
+          <button class="btn btn-outline-primary btn-sm" id="btnRefreshData">
+            <i class="fa-solid fa-rotate"></i> Refresh Data
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: OVERVIEW -->
+      <section id="tab-overview" class="tab-page active">
+        <!-- Overview Stats Grid -->
+        <div class="stats-grid">
+          <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fa-solid fa-wallet"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total Omset Penjualan</span>
+              <h3 class="stat-value" id="ovTotalRevenue">Rp 0</h3>
+              <span class="stat-sub" id="ovTxCount">0 Transaksi Sukses</span>
+            </div>
+          </div>
+          
+          <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total Laba Kotor</span>
+              <h3 class="stat-value" id="ovGrossProfit">Rp 0</h3>
+              <span class="stat-sub" id="ovProfitMargin">Margin: 0%</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fa-solid fa-truck-field"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total Supplier Terdaftar</span>
+              <h3 class="stat-value" id="ovSupplierCount">0</h3>
+              <span class="stat-sub">Mitra Pasokan Bahan</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-info">
+            <div class="stat-icon"><i class="fa-solid fa-industry"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Vendor Outsource</span>
+              <h3 class="stat-value" id="ovVendorCount">0</h3>
+              <span class="stat-sub">Spesialis Cetak Luar</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Shortcuts & Recent Activity -->
+        <div class="dashboard-columns">
+          <div class="card col-main">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-clock-rotate-left"></i> Transaksi Terakhir</h3>
+              <a href="#laporan" class="link-action" onclick="switchTab('laporan')">Lihat Semua Laporan &rarr;</a>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>No. Transaksi</th>
+                      <th>Pelanggan</th>
+                      <th>Total</th>
+                      <th>Status Bayar</th>
+                      <th>Status Order</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ovRecentTxTable">
+                    <tr><td colspan="5" class="text-center py-4">Memuat data transaksi...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card col-side">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-bolt"></i> Aksi Cepat Backoffice</h3>
+            </div>
+            <div class="card-body shortcut-buttons">
+              <button class="btn btn-shortcut" onclick="openModalSupplier()">
+                <i class="fa-solid fa-plus-circle"></i> Tambah Supplier Baru
+              </button>
+              <button class="btn btn-shortcut" onclick="openModalBarang()">
+                <i class="fa-solid fa-box-open"></i> Input Barang In-House
+              </button>
+              <button class="btn btn-shortcut" onclick="openModalVendor()">
+                <i class="fa-solid fa-handshake"></i> Input Vendor Outsource
+              </button>
+              <button class="btn btn-shortcut btn-secondary" onclick="switchTab('laporan')">
+                <i class="fa-solid fa-chart-column"></i> Cek Laporan Laba Kotor
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: MENU SUPPLIER -->
+      <section id="tab-supplier" class="tab-page">
+        <div class="action-bar">
+          <div class="search-box">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="supplierSearch" placeholder="Cari nama supplier / kontak / alamat..." oninput="renderSupplierTable()">
+          </div>
+          <button class="btn btn-primary" onclick="openModalSupplier()">
+            <i class="fa-solid fa-plus"></i> Tambah Supplier Baru
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-truck-field"></i> Daftar Supplier Master</h3>
+            <span class="badge badge-info" id="supplierBadgeCount">0 Supplier</span>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Nama Supplier</th>
+                    <th>Kontak / No. Telepon</th>
+                    <th>Alamat Lengkap</th>
+                    <th>Tanggal Terdaftar</th>
+                    <th class="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="supplierTableBody">
+                  <tr><td colspan="6" class="text-center py-4">Memuat data supplier...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: MENU BARANG (IN-HOUSE) -->
+      <section id="tab-barang" class="tab-page">
+        <div class="action-bar">
+          <div class="search-box">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="barangSearch" placeholder="Cari nama kertas, ATK, barcode..." oninput="renderBarangTable()">
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-outline-success" onclick="downloadTemplateExcel()" title="Unduh format spreadsheet Excel untuk mengisikan barang">
+              <i class="fa-solid fa-file-excel"></i> Download Template (.xlsx)
+            </button>
+            <button class="btn btn-success" onclick="openModalImportExcel()" title="Unggah file Excel untuk memasukkan/memperbarui barang secara massal">
+              <i class="fa-solid fa-file-import"></i> Import Excel
+            </button>
+            <button class="btn btn-outline-primary" onclick="openModalCategory('inhouse')">
+              <i class="fa-solid fa-folder-plus"></i> + Tambah Kategori
+            </button>
+            <button class="btn btn-primary" onclick="openModalBarang()">
+              <i class="fa-solid fa-plus"></i> Input Barang In-House Baru
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-boxes-stacked"></i> Master Produk & Barang In-House (Kertas, ATK, Cetak Dalam)</h3>
+            <span class="badge badge-info" id="barangBadgeCount">0 Barang</span>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Barcode / Kode</th>
+                    <th>Nama Barang</th>
+                    <th>Kategori</th>
+                    <th>Stok Saat Ini</th>
+                    <th>Harga Modal</th>
+                    <th>Harga Jual</th>
+                    <th>Status Stok</th>
+                    <th class="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="barangTableBody">
+                  <tr><td colspan="8" class="text-center py-4">Memuat data barang in-house...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: MENU VENDOR OUTSOURCE -->
+      <section id="tab-vendor" class="tab-page">
+        <div class="vendor-sections">
+          <!-- Section A: Data Vendor Outsource -->
+          <div class="card mb-6">
+            <div class="card-header space-between">
+              <div>
+                <h3><i class="fa-solid fa-industry"></i> Daftar Vendor Cetak Luar (Outsource Mitra)</h3>
+                <p class="subtitle">Vendor tempat pesanan banner, spanduk, atau offset dilempar</p>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openModalVendor()">
+                <i class="fa-solid fa-plus"></i> Input Vendor Baru
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Nama Vendor Outsource</th>
+                      <th>Jenis Banner / Spanduk / Layanan</th>
+                      <th>Harga Modal Vendor (per m²)</th>
+                      <th class="text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vendorTableBody">
+                    <tr><td colspan="5" class="text-center py-4">Memuat data vendor outsource...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section B: Produk Outsource Comparison -->
+          <div class="card">
+            <div class="card-header space-between">
+              <div>
+                <h3><i class="fa-solid fa-tags"></i> Produk Cetak Outsource (Modal Vendor vs Harga Jual Toko)</h3>
+                <p class="subtitle">Perbandingan Modal Vendor Cetak Luar vs Harga Jual ke Pelanggan</p>
+              </div>
+              <div class="action-buttons">
+                <button class="btn btn-outline-primary btn-sm" onclick="openModalCategory('outsource')">
+                  <i class="fa-solid fa-folder-plus"></i> + Kategori Baru
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="openModalOutsourceProduct()">
+                  <i class="fa-solid fa-plus"></i> Input Produk Outsource Baru
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Kode</th>
+                      <th>Nama Produk Outsource</th>
+                      <th>Kategori</th>
+                      <th>Modal Vendor (HPP)</th>
+                      <th>Harga Jual Toko</th>
+                      <th>Estimasi Laba Kotor / Unit</th>
+                      <th class="text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody id="outsourceProductTableBody">
+                    <tr><td colspan="7" class="text-center py-4">Memuat produk outsource...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: MENU LAPORAN -->
+      <section id="tab-laporan" class="tab-page">
+        <!-- Date Filter Card -->
+        <div class="card filter-card mb-6">
+          <div class="filter-row">
+            <div class="filter-group">
+              <label for="reportStartDate"><i class="fa-solid fa-calendar"></i> Tanggal Mulai:</label>
+              <input type="date" id="reportStartDate" class="form-control">
+            </div>
+            <div class="filter-group">
+              <label for="reportEndDate"><i class="fa-solid fa-calendar"></i> Tanggal Akhir:</label>
+              <input type="date" id="reportEndDate" class="form-control">
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" onclick="loadReports()">
+                <i class="fa-solid fa-filter"></i> Terapkan Filter
+              </button>
+              <button class="btn btn-outline-secondary" onclick="resetReportFilter()">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+              </button>
+              <button class="btn btn-success" onclick="exportFinancialReportToExcel()" title="Export Laporan Keuangan ke Excel">
+                <i class="fa-solid fa-file-excel"></i> Export Excel (.xls)
+              </button>
+              <button class="btn btn-outline-secondary" onclick="exportFinancialReportToCSV()" title="Export CSV Data Transaksi">
+                <i class="fa-solid fa-file-csv"></i> Export CSV
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Laporan Financial Cards Grid -->
+        <div class="stats-grid mb-6">
+          <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fa-solid fa-cash-register"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total Omset Penjualan</span>
+              <h3 class="stat-value" id="repTotalRevenue">Rp 0</h3>
+              <span class="stat-sub" id="repTotalTxCount">0 Transaksi</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-danger">
+            <div class="stat-icon"><i class="fa-solid fa-receipt"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total HPP & Modal Vendor</span>
+              <h3 class="stat-value" id="repTotalCogs">Rp 0</h3>
+              <span class="stat-sub">Bahan In-House + Vendor Cetak</span>
+            </div>
+          </div>
+
+          <div class="stat-card stat-success">
+            <div class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total Laba Kotor (Gross Profit)</span>
+              <h3 class="stat-value" id="repGrossProfit">Rp 0</h3>
+              <span class="stat-sub" id="repMarginPercent">Margin Laba: 0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabel Riwayat Transaksi -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-history"></i> Tabel Riwayat Transaksi Penjualan</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>No. Transaksi</th>
+                    <th>Waktu & Tanggal</th>
+                    <th>Nama Pelanggan</th>
+                    <th>Total Transaksi</th>
+                    <th>DP Terbayar</th>
+                    <th>Status Bayar</th>
+                    <th>Status Order</th>
+                    <th class="text-center">Aksi Detail</th>
+                  </tr>
+                </thead>
+                <tbody id="transactionHistoryTableBody">
+                  <tr><td colspan="8" class="text-center py-4">Memuat riwayat transaksi...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabel Margin Outsource Vendor Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-chart-pie"></i> Laporan Detail Margin Produk Outsource Vendor</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Produk Outsource</th>
+                    <th>Jumlah Terjual (Qty/m²)</th>
+                    <th>Total Pendapatan (Omset)</th>
+                    <th>Total Modal Vendor</th>
+                    <th>Laba Kotor Outsource</th>
+                    <th>Margin (%)</th>
+                  </tr>
+                </thead>
+                <tbody id="vendorMarginReportBody">
+                  <tr><td colspan="6" class="text-center py-4">Memuat laporan vendor margin...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: PENGATURAN SYSTEM & BACKUP -->
+      <section id="tab-pengaturan" class="tab-page">
+        <div class="dashboard-columns">
+          
+          <!-- Card 1: Upload Logo Usaha (Branding) -->
+          <div class="card mb-6 col-main">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-image"></i> Logo Usaha & Branding Toko</h3>
+            </div>
+            <div class="card-body">
+              <p class="subtitle mb-4">Logo usaha ini akan ditampilkan pada Header Admin, Header Aplikasi Kasir Client, Struk Thermal, dan Nota SPK Work Order.</p>
+              
+              <div style="display: flex; gap: 20px; align-items: center; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div style="width: 100px; height: 100px; border-radius: 12px; border: 2px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #ffffff;" id="logoPreviewBox">
+                  <i class="fa-solid fa-print" style="font-size: 36px; color: #94a3b8;" id="logoDefaultIcon"></i>
+                  <img id="logoPreviewImg" src="" alt="Logo Usaha" style="display:none; width: 100%; height: 100%; object-fit: contain;" />
+                </div>
+                
+                <form id="formUploadLogo" onsubmit="handleLogoUploadSubmit(event)" style="flex: 1;">
+                  <div class="form-group mb-3">
+                    <label for="logoFileInput" style="font-weight: 600;">Pilih Gambar Logo Usaha (PNG / JPG)</label>
+                    <input type="file" id="logoFileInput" accept="image/png, image/jpeg, image/jpg" class="form-control" required onchange="previewSelectedLogo(event)">
+                    <small class="text-muted">Rekomendasi rasio persegi / lingkaran (PNG transparan atau latar putih).</small>
+                  </div>
+                  <button type="submit" class="btn btn-primary" id="btnUploadLogo">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload & Simpan Logo
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Backup Source Code & Database ke GitHub -->
+          <div class="card mb-6 col-side">
+            <div class="card-header">
+              <h3><i class="fa-brands fa-github"></i> Sinkronisasi & Backup GitHub</h3>
+            </div>
+            <div class="card-body">
+              <p class="subtitle mb-3">Secara otomatis melakukan commit & push seluruh source code beserta database ke repositori GitHub.</p>
+              
+              <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; font-size: 12px; font-family: monospace; margin-bottom: 16px; word-break: break-all; border: 1px solid #cbd5e1;">
+                <i class="fa-brands fa-git-alt" style="color: #f05032;"></i> Remote Target:<br>
+                <strong>https://github.com/justlensmedia-sudo/Kasir_Baru.git</strong>
+              </div>
+
+              <button class="btn btn-success style-btn-full" onclick="triggerGitBackup()" id="btnGitBackup" style="width: 100%; padding: 12px; font-weight: 700;">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Backup Source Code & Database
+              </button>
+              
+              <div id="gitBackupStatus" style="margin-top: 12px; font-size: 12px;"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Card 3: Pembersihan Database (Reset Data Sisa) -->
+        <div class="card" style="border-left: 4px solid var(--danger);">
+          <div class="card-header space-between">
+            <div>
+              <h3 style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Pembersihan Database (Reset Data Sisa)</h3>
+              <p class="subtitle">Kosongkan seluruh data transaksi, stok, bahan baku, supplier, dan vendor outsource</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 10px; color: #991b1b; margin-bottom: 16px;">
+              <h4 style="margin-bottom: 6px; font-size: 14px;"><i class="fa-solid fa-shield-halved"></i> PERTAHANKAN AKUN USER & ROLE</h4>
+              <p style="font-size: 13px;">Tindakan ini akan menghapus <strong>seluruh data transaksi, item, produk, bahan baku, supplier, dan vendor outsource</strong> dari database server. Data akun pengguna (Admin & Kasir) beserta role/hak aksesnya <strong>TETAP DIPERTAHANKAN</strong> agar aplikasi kasir dan admin bisa langsung dipakai login di toko.</p>
+            </div>
+
+            <button class="btn btn-danger" onclick="triggerDatabaseReset()" id="btnResetDb">
+              <i class="fa-solid fa-trash-can"></i> Bersihkan / Reset Database Sekarang
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL DIALOGS -->
+
+  <!-- Modal Supplier (Add / Edit) -->
+  <div class="modal-backdrop" id="modalSupplier">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalSupplierTitle"><i class="fa-solid fa-truck-field"></i> Form Supplier</h3>
+        <button class="btn-close" onclick="closeModal('modalSupplier')">&times;</button>
+      </div>
+      <form id="formSupplier" onsubmit="handleSupplierSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="supplierId">
+          <div class="form-group">
+            <label for="supplierName">Nama Supplier <span class="text-danger">*</span></label>
+            <input type="text" id="supplierName" class="form-control" placeholder="Contoh: PT Paper Utama" required>
+          </div>
+          <div class="form-group">
+            <label for="supplierPhone">Kontak / No. Telepon</label>
+            <input type="text" id="supplierPhone" class="form-control" placeholder="Contoh: 081234567890">
+          </div>
+          <div class="form-group">
+            <label for="supplierAddress">Alamat Lengkap</label>
+            <textarea id="supplierAddress" class="form-control" rows="3" placeholder="Contoh: Jl. Industri No. 45, Jakarta"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalSupplier')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Barang In-House (Add / Edit) -->
+  <div class="modal-backdrop" id="modalBarang">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalBarangTitle"><i class="fa-solid fa-box-open"></i> Form Input Barang Baru (In-House)</h3>
+        <button class="btn-close" onclick="closeModal('modalBarang')">&times;</button>
+      </div>
+      <form id="formBarang" onsubmit="handleBarangSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="barangId">
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="barangCode">Barcode / Kode Produk <span class="text-danger">*</span></label>
+              <input type="text" id="barangCode" class="form-control" placeholder="Contoh: PRD-001" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="barangCategory">Kategori <span class="text-danger">*</span></label>
+              <select id="barangCategory" class="form-control" required>
+                <option value="Bahan Baku">Bahan Baku / Kertas</option>
+                <option value="ATK">ATK / Peralatan</option>
+                <option value="Cetak Lembaran">Cetak Lembaran (A4/A3)</option>
+                <option value="Jilid">Jilid & Finishing</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="barangName">Nama Kertas / ATK / Produk <span class="text-danger">*</span></label>
+            <input type="text" id="barangName" class="form-control" placeholder="Contoh: Kertas HVS A4 80gr (Rim)" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-4">
+              <label for="barangStock">Stok Awal <span class="text-danger">*</span></label>
+              <input type="number" id="barangStock" class="form-control" min="0" value="10" required>
+            </div>
+            <div class="form-group col-4">
+              <label for="barangBasePrice">Harga Modal (Rp)</label>
+              <input type="number" id="barangBasePrice" class="form-control" min="0" value="0" placeholder="35000">
+            </div>
+            <div class="form-group col-4">
+              <label for="barangSellPrice">Harga Jual (Rp) <span class="text-danger">*</span></label>
+              <input type="number" id="barangSellPrice" class="form-control" min="0" value="0" placeholder="55000" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalBarang')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Barang</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Vendor Outsource (Add / Edit) -->
+  <div class="modal-backdrop" id="modalVendor">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalVendorTitle"><i class="fa-solid fa-industry"></i> Form Vendor Cetak Luar</h3>
+        <button class="btn-close" onclick="closeModal('modalVendor')">&times;</button>
+      </div>
+      <form id="formVendor" onsubmit="handleVendorSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="vendorId">
+          <div class="form-group">
+            <label for="vendorName">Nama Vendor Outsource <span class="text-danger">*</span></label>
+            <input type="text" id="vendorName" class="form-control" placeholder="Contoh: Vendor Print Pro Outdoor" required>
+          </div>
+
+          <div class="form-group">
+            <label for="vendorServiceType">Jenis Banner / Spanduk / Layanan <span class="text-danger">*</span></label>
+            <input type="text" id="vendorServiceType" class="form-control" placeholder="Contoh: Digital Printing Banner Outdoor 280gr/340gr" required>
+          </div>
+
+          <div class="form-group">
+            <label for="vendorBaseCost">Harga Modal Vendor (per m²) (Rp) <span class="text-danger">*</span></label>
+            <input type="number" id="vendorBaseCost" class="form-control" min="0" placeholder="12000" required>
+            <small class="form-text">Biaya modal yang ditagihkan vendor per meter persegi</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalVendor')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Vendor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Outsource Product (Add / Edit) -->
+  <div class="modal-backdrop" id="modalOutsourceProduct">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalOutsourceProductTitle"><i class="fa-solid fa-tags"></i> Form Produk Cetak Outsource</h3>
+        <button class="btn-close" onclick="closeModal('modalOutsourceProduct')">&times;</button>
+      </div>
+      <form id="formOutsourceProduct" onsubmit="handleOutsourceProductSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="outsourceProductId">
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="outsourceProductCode">Kode Produk <span class="text-danger">*</span></label>
+              <input type="text" id="outsourceProductCode" class="form-control" placeholder="Contoh: PRD-OUT-001" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="outsourceProductCategory">Kategori Banner/Spanduk <span class="text-danger">*</span></label>
+              <select id="outsourceProductCategory" class="form-control" required>
+                <option value="Banner Outdoor">Banner Outdoor</option>
+                <option value="Banner Indoor">Banner Indoor High-Res</option>
+                <option value="Stiker Decal">Stiker & Decal</option>
+                <option value="Brosur Offset">Brosur & Offset</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="outsourceProductName">Nama Banner / Spanduk / Produk <span class="text-danger">*</span></label>
+            <input type="text" id="outsourceProductName" class="form-control" placeholder="Contoh: Banner Flexi 280gr Standard" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="outsourceBasePrice">Harga Modal Vendor (Rp/m²) <span class="text-danger">*</span></label>
+              <input type="number" id="outsourceBasePrice" class="form-control" min="0" placeholder="12000" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="outsourceSellPrice">Harga Jual Toko (Rp/m²) <span class="text-danger">*</span></label>
+              <input type="number" id="outsourceSellPrice" class="form-control" min="0" placeholder="25000" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalOutsourceProduct')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Produk Outsource</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Detail Transaksi -->
+  <div class="modal-backdrop" id="modalTransactionDetail">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-receipt"></i> Detail Transaksi & Item Order</h3>
+        <button class="btn-close" onclick="closeModal('modalTransactionDetail')">&times;</button>
+      </div>
+      <div class="modal-body" id="modalTransactionBody">
+        <p class="text-center py-4">Memuat detail transaksi...</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closeModal('modalTransactionDetail')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Kategori Baru -->
+  <div class="modal-backdrop" id="modalCategory">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalCategoryTitle"><i class="fa-solid fa-folder-plus"></i> Form Tambah Kategori Baru</h3>
+        <button class="btn-close" onclick="closeModal('modalCategory')">&times;</button>
+      </div>
+      <form id="formCategory" onsubmit="handleCategorySubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="categoryTarget">
+          <div class="form-group">
+            <label for="categoryName">Nama Kategori Baru <span class="text-danger">*</span></label>
+            <input type="text" id="categoryName" class="form-control" placeholder="Contoh: Kertas Art Paper 150gr, Stiker Vinyl, Banner China" required>
+            <small class="form-text">Kategori ini akan otomatis muncul pada pilihan kategori produk.</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalCategory')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Kategori</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Import Barang via Excel -->
+  <div class="modal-backdrop" id="modalImportExcel">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Import Barang via Excel</h3>
+        <button class="btn-close" onclick="closeModal('modalImportExcel')">&times;</button>
+      </div>
+      <form id="formImportExcel" onsubmit="handleExcelImportSubmit(event)">
+        <div class="modal-body">
+          <p class="subtitle mb-3">Unggah file spreadsheet <code>.xlsx</code> / <code>.xls</code> yang telah diisi sesuai format kolom template.</p>
+          
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; padding: 12px 14px; border-radius: 8px; font-size: 12px; color: #065f46; margin-bottom: 16px;">
+            <i class="fa-solid fa-circle-info"></i> Format Kolom: <code>[Kode_Barcode, Nama_Barang, Kategori, Harga_Modal, Harga_Jual, Stok_Awal, Satuan]</code>. Jika Kode_Barcode sudah ada di database, data akan otomatis diperbarui (Update).
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="excelFileInput" style="font-weight: 600;">Pilih File Excel (.xlsx / .xls) <span class="text-danger">*</span></label>
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalImportExcel')">Batal</button>
+          <button type="submit" class="btn btn-success" id="btnSubmitImportExcel">
+            <i class="fa-solid fa-upload"></i> Unggah & Impor Barang
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- App Script -->
+  <script src="app.js"></script>
+</body>
+</html>
