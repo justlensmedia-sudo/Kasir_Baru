@@ -9,6 +9,8 @@ release/
 **/release/
 build/
 **/build/
+dist_app/
+**/dist_app/
 
 # Temp & Cache
 .env

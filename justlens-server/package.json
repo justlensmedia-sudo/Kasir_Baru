@@ -11,6 +11,7 @@
     "seed": "node src/database/seed.js",
     "clear-dummy": "node src/database/clear-dummy.js",
     "test": "node test-api.js",
+    "backup": "node scripts/export-full-backup.js",
     "build:exe": "node scripts/build-standalone.js"
   },
   "pkg": {
