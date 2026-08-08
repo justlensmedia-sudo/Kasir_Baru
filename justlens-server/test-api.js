@@ -31,6 +31,9 @@ function request(options, data = null) {
 async function runTests() {
   console.log('=== MEMULAI PENGUJIAN API JUSTLENS SERVER (LAN & FULL FEATURES) ===\n');
 
+  const autoInitDb = require('./src/database/autoInitDb');
+  await autoInitDb();
+
   server = app.listen(PORT, '0.0.0.0');
   console.log(`Server tes berjalan di port ${PORT} (0.0.0.0)...\n`);
 
@@ -79,6 +82,23 @@ async function runTests() {
 
     // 3. Tes Materials & Pembelian Bahan Baku
     console.log('[TEST 3] POST /api/materials & POST /api/purchases');
+    // Create Supplier
+    const supRes = await request(
+      {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/suppliers',
+        method: 'POST',
+        headers: authHeaders
+      },
+      {
+        name: 'PT Kertas Utama',
+        phone: '08123456789',
+        address: 'Jl. Industri No 12'
+      }
+    );
+    const supplierId = supRes.data && supRes.data.data ? supRes.data.data.id : null;
+
     const matRes = await request(
       {
         hostname: 'localhost',
@@ -94,7 +114,7 @@ async function runTests() {
         unit: 'Pack',
         base_price: 20000,
         stock: 5,
-        supplier_id: 1
+        supplier_id: supplierId
       }
     );
     console.log('Create Material Status:', matRes.status);
@@ -136,6 +156,44 @@ async function runTests() {
     });
     console.log('Stok Mika Setelah Pembelian:', checkMat.data.data.stock, '\n');
 
+    // Create Product & Finishing for Test 4
+    const prodRes = await request(
+      {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/products',
+        method: 'POST',
+        headers: authHeaders
+      },
+      {
+        code: `PRD-TEST-${Date.now()}`,
+        name: 'Banner Flexi 280gr Standard',
+        category: 'Banner Outdoor',
+        unit: 'm²',
+        is_outsource: 1,
+        is_metered: 1,
+        base_price: 12000,
+        sell_price: 25000,
+        stock: 999
+      }
+    );
+    const prodId = prodRes.data.data.id;
+
+    const finRes = await request(
+      {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/finishing-options',
+        method: 'POST',
+        headers: authHeaders
+      },
+      {
+        name: 'Mata Ayam 4 Sudut',
+        price: 5000
+      }
+    );
+    const finId = finRes.data.data.id;
+
     // 4. Tes Create Transaction (Kasir Checkout)
     console.log('[TEST 4] POST /api/transactions/create (Kasir Checkout)');
     const txRes = await request(
@@ -154,7 +212,8 @@ async function runTests() {
         order_status: 'Selesai',
         items: [
           {
-            product_id: 3, // Banner Flexi (Outsource) 2m x 2m = 4m2 @ 25,000 = 100,000. Vendor Cost = 4 * 12,000 = 48,000
+            product_id: prodId,
+            finishing_option_id: finId,
             width: 2.0,
             length: 2.0,
             qty: 1,

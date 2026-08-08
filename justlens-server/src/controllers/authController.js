@@ -22,6 +22,13 @@ const authController = {
         });
       }
 
+      if (user.is_active === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Akun Anda dinonaktifkan oleh Admin.'
+        });
+      }
+
       const isMatch = await bcrypt.compare(password, user.password_hash);
       if (!isMatch) {
         return res.status(401).json({
@@ -29,6 +36,14 @@ const authController = {
           message: 'Username atau password salah.'
         });
       }
+
+      const LogModel = require('../models/logModel');
+      await LogModel.create({
+        user_id: user.id,
+        user_name: user.name,
+        activity: 'Login Aplikasi',
+        details: `Kasir/Admin '${user.name}' (${user.role}) berhasil login.`
+      });
 
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role, name: user.name },

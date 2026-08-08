@@ -96,8 +96,15 @@ if (fs.existsSync(installerSrc)) {
 const compiledExe = path.join(distDir, 'justlens-server.exe');
 const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.1.exe');
 if (fs.existsSync(compiledExe)) {
-  fs.copyFileSync(compiledExe, targetSetupExe);
-  console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.1.exe');
+  try {
+    if (fs.existsSync(targetSetupExe)) {
+      try { fs.unlinkSync(targetSetupExe); } catch (e) {}
+    }
+    fs.copyFileSync(compiledExe, targetSetupExe);
+    console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.1.exe');
+  } catch (err) {
+    console.warn('⚠️ Gagal membuat duplikat Justlens-Server-Setup-v1.1.exe, executable utama dist/justlens-server.exe tetap tersedia:', err.message);
+  }
 }
 
 console.log('==================================================');

@@ -30,6 +30,14 @@ const transactionController = {
 
       const transaction = await TransactionModel.getById(result.id);
 
+      const LogModel = require('../models/logModel');
+      const cashierName = req.body.user_name || req.body.cashier_name || 'Kasir';
+      await LogModel.create({
+        user_name: cashierName,
+        activity: 'Transaksi Baru',
+        details: `Membuat transaksi ${transaction.transaction_no} atas nama '${customer_name}' sejumlah Rp ${Number(total_amount || 0).toLocaleString('id-ID')}`
+      });
+
       res.status(201).json({
         success: true,
         message: 'Transaksi berhasil dibuat & pemotongan stok diproses.',
@@ -79,7 +87,7 @@ const transactionController = {
   updateOrderStatus: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { order_status, payment_status, dp_amount } = req.body;
+      const { order_status, payment_status, dp_amount, user_name } = req.body;
 
       const existing = await TransactionModel.getById(id);
       if (!existing) {
@@ -93,6 +101,13 @@ const transactionController = {
       });
 
       const updatedTransaction = await TransactionModel.getById(id);
+
+      const LogModel = require('../models/logModel');
+      await LogModel.create({
+        user_name: user_name || 'System/Kasir',
+        activity: order_status === 'Batal' ? 'Batal Transaksi' : 'Update Status Transaksi',
+        details: `Memperbarui transaksi ${existing.transaction_no} -> Status: ${order_status || existing.order_status}, Bayar: ${payment_status || existing.payment_status}`
+      });
 
       res.json({
         success: true,

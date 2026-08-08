@@ -41,6 +41,20 @@ const reportController = {
     } catch (error) {
       next(error);
     }
+  },
+
+  getDailyShiftReport: async (req, res, next) => {
+    try {
+      const { date } = req.query;
+      const report = await ReportModel.getDailyShiftReport(date);
+      res.json({
+        success: true,
+        message: 'Laporan Shift Harian berhasil didapatkan.',
+        data: report
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 };
 

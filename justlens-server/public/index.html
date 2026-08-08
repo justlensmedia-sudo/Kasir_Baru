@@ -63,6 +63,16 @@
           <span>Kelola Data via Excel</span>
         </a>
 
+        <div class="nav-section">MANAJEMEN AKUN & AUDIT</div>
+        <a href="#users" class="nav-link" data-tab="users">
+          <i class="fa-solid fa-users-gear"></i>
+          <span>Kelola Akun Kasir</span>
+        </a>
+        <a href="#logs" class="nav-link" data-tab="logs">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>Log Aktivitas User</span>
+        </a>
+
         <div class="nav-section">PENGATURAN & BRANDING</div>
         <a href="#pengaturan" class="nav-link" data-tab="pengaturan">
           <i class="fa-solid fa-gear"></i>
@@ -633,8 +643,90 @@
                 </button>
               </form>
             </div>
+          <!-- Card 4: Label Barcode Word -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-barcode" style="color: var(--primary);"></i> 4. Cetak Label Barcode ke Word (.docx)</h3>
+            </div>
+            <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+              <p class="subtitle" style="font-size: 12px; line-height: 1.5;">Menghasilkan berkas Microsoft Word (.docx) berisi grid label stiker barcode produk, nama barang, dan harga jual yang rapi.</p>
+              
+              <div>
+                <button class="btn btn-primary" style="width: 100%; font-weight: 600;" onclick="exportBarcodeWord()">
+                  <i class="fa-solid fa-file-word"></i> Cetak Seluruh Label Barcode ke Word (.docx)
+                </button>
+              </div>
+            </div>
           </div>
 
+        </div>
+      </section>
+
+      <!-- TAB 7: KELOLA AKUN KASIR / USER -->
+      <section id="users" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3><i class="fa-solid fa-users-gear"></i> Manajemen Akun Kasir & Admin</h3>
+              <p class="subtitle">Kelola hak akses, tambah akun kasir baru, reset password, dan status akun</p>
+            </div>
+            <button class="btn btn-primary" onclick="openModalUser()">
+              <i class="fa-solid fa-user-plus"></i> Tambah Akun Kasir Baru
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nama Lengkap</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Tanggal Dibuat</th>
+                    <th style="text-align: center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="userTableBody">
+                  <tr><td colspan="7" class="text-center">Memuat data akun...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 8: LOG AKTIVITAS USER -->
+      <section id="logs" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <h3><i class="fa-solid fa-clipboard-list"></i> Audit Log Aktivitas Kasir & System</h3>
+              <p class="subtitle">Rekam jejak aktivitas login, pembuat transaksi, dan pencetakan secara real-time</p>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="loadActivityLogs()">
+              <i class="fa-solid fa-rotate"></i> Refresh Log
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Waktu</th>
+                    <th>Nama Kasir / User</th>
+                    <th>Aktivitas</th>
+                    <th>Detail Keterangan</th>
+                  </tr>
+                </thead>
+                <tbody id="logTableBody">
+                  <tr><td colspan="5" class="text-center">Memuat rekam jejak log...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -702,6 +794,13 @@
           <div class="form-group">
             <label for="barangName">Nama Kertas / ATK / Produk <span class="text-danger">*</span></label>
             <input type="text" id="barangName" class="form-control" placeholder="Contoh: Kertas HVS A4 80gr (Rim)" required>
+          </div>
+
+          <div class="form-group">
+            <label for="barangSupplier"><i class="fa-solid fa-truck-field"></i> Supplier Utama (Pemasok)</label>
+            <select id="barangSupplier" class="form-control">
+              <option value="">-- Tanpa Supplier / Umum --</option>
+            </select>
           </div>
 
           <div class="form-row">
@@ -878,6 +977,99 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal User Management (Add / Edit) -->
+  <div class="modal-backdrop" id="modalUser">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalUserTitle"><i class="fa-solid fa-user-plus"></i> Form Akun Kasir / User</h3>
+        <button class="btn-close" onclick="closeModal('modalUser')">&times;</button>
+      </div>
+      <form id="formUser" onsubmit="handleUserSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="userId">
+          <div class="form-group">
+            <label for="userFullName">Nama Lengkap Kasir <span class="text-danger">*</span></label>
+            <input type="text" id="userFullName" class="form-control" placeholder="Contoh: Budi Santoso" required>
+          </div>
+          <div class="form-group">
+            <label for="userUsername">Username Login <span class="text-danger">*</span></label>
+            <input type="text" id="userUsername" class="form-control" placeholder="Contoh: kasir1" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="userRole">Role / Hak Akses</label>
+              <select id="userRole" class="form-control">
+                <option value="kasir">Kasir Toko</option>
+                <option value="admin">Administrator Server</option>
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label for="userStatus">Status Akun</label>
+              <select id="userStatus" class="form-control">
+                <option value="1">Aktif</option>
+                <option value="0">Nonaktif</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" id="userPasswordGroup">
+            <label for="userPassword">Password Login <span class="text-danger">*</span></label>
+            <input type="password" id="userPassword" class="form-control" placeholder="Minimal 4 karakter" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalUser')">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Akun</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Reset Password User -->
+  <div class="modal-backdrop" id="modalResetPassword">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-key"></i> Reset Password Kasir</h3>
+        <button class="btn-close" onclick="closeModal('modalResetPassword')">&times;</button>
+      </div>
+      <form id="formResetPassword" onsubmit="handleResetPasswordSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="resetUserId">
+          <p class="subtitle mb-3" id="resetUserTargetText">Reset password untuk pengguna</p>
+          <div class="form-group">
+            <label for="newPassword">Password Baru <span class="text-danger">*</span></label>
+            <input type="password" id="newPassword" class="form-control" placeholder="Masukkan password baru" required minlength="4">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalResetPassword')">Batal</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-solid fa-key"></i> Simpan Password Baru</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Barcode Preview & Word Export -->
+  <div class="modal-backdrop" id="modalBarcode">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-barcode"></i> Preview Label Barcode</h3>
+        <button class="btn-close" onclick="closeModal('modalBarcode')">&times;</button>
+      </div>
+      <div class="modal-body text-center" style="padding: 24px;">
+        <h4 id="barcodeProductName" style="font-weight: 700; margin-bottom: 4px;">Nama Barang</h4>
+        <p id="barcodeProductPrice" style="color: var(--primary); font-weight: 700; font-size: 16px; margin-bottom: 16px;">Rp 0</p>
+        <div style="background: #fff; padding: 16px; border-radius: 8px; border: 1px solid #e2e8f0; display: inline-block; margin-bottom: 16px;">
+          <img id="barcodeImagePreview" src="" alt="Barcode Preview" style="max-width: 280px; height: auto;" />
+        </div>
+        <p id="barcodeCodeDisplay" style="font-family: monospace; font-weight: 700; letter-spacing: 2px; color: #475569;">PRD-001</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalBarcode')">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="exportBarcodeWord()"><i class="fa-solid fa-file-word"></i> Export ke Word (.docx)</button>
+      </div>
     </div>
   </div>
 

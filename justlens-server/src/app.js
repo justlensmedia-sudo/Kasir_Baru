@@ -15,6 +15,9 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const settingRoutes = require('./routes/settingRoutes');
+const userRoutes = require('./routes/userRoutes');
+const logRoutes = require('./routes/logRoutes');
+const barcodeRoutes = require('./routes/barcodeRoutes');
 
 const app = express();
 
@@ -74,6 +77,9 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/logs', logRoutes);
+app.use('/api/barcodes', barcodeRoutes);
 
 // 404 Handler
 app.use((req, res) => {

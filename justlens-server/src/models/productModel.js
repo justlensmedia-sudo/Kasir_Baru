@@ -3,23 +3,47 @@ const { query, get, run } = require('../config/database');
 const ProductModel = {
   getAll: async (category = null) => {
     if (category) {
-      return await query('SELECT * FROM products WHERE category = ? ORDER BY name ASC', [category]);
+      return await query(
+        `SELECT p.*, s.name AS supplier_name 
+         FROM products p 
+         LEFT JOIN suppliers s ON p.supplier_id = s.id 
+         WHERE p.category = ? 
+         ORDER BY p.name ASC`,
+        [category]
+      );
     }
-    return await query('SELECT * FROM products ORDER BY name ASC');
+    return await query(
+      `SELECT p.*, s.name AS supplier_name 
+       FROM products p 
+       LEFT JOIN suppliers s ON p.supplier_id = s.id 
+       ORDER BY p.name ASC`
+    );
   },
 
   getById: async (id) => {
-    return await get('SELECT * FROM products WHERE id = ?', [id]);
+    return await get(
+      `SELECT p.*, s.name AS supplier_name 
+       FROM products p 
+       LEFT JOIN suppliers s ON p.supplier_id = s.id 
+       WHERE p.id = ?`,
+      [id]
+    );
   },
 
   getByCode: async (code) => {
-    return await get('SELECT * FROM products WHERE code = ?', [code]);
+    return await get(
+      `SELECT p.*, s.name AS supplier_name 
+       FROM products p 
+       LEFT JOIN suppliers s ON p.supplier_id = s.id 
+       WHERE p.code = ?`,
+      [code]
+    );
   },
 
-  create: async ({ code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock }) => {
+  create: async ({ code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id }) => {
     const res = await run(
-      `INSERT INTO products (code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         code,
         name,
@@ -29,16 +53,17 @@ const ProductModel = {
         is_metered ? 1 : 0,
         base_price || 0,
         sell_price || 0,
-        stock || 0
+        stock || 0,
+        supplier_id || null
       ]
     );
     return res.lastID;
   },
 
-  update: async (id, { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock }) => {
+  update: async (id, { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id }) => {
     const res = await run(
       `UPDATE products 
-       SET code = ?, name = ?, category = ?, unit = ?, is_outsource = ?, is_metered = ?, base_price = ?, sell_price = ?, stock = ?, updated_at = CURRENT_TIMESTAMP 
+       SET code = ?, name = ?, category = ?, unit = ?, is_outsource = ?, is_metered = ?, base_price = ?, sell_price = ?, stock = ?, supplier_id = ?, updated_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,
       [
         code,
@@ -50,18 +75,19 @@ const ProductModel = {
         base_price || 0,
         sell_price || 0,
         stock || 0,
+        supplier_id || null,
         id
       ]
     );
     return res.changes;
   },
 
-  upsertByCode: async ({ code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock }) => {
+  upsertByCode: async ({ code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id }) => {
     const existing = await get('SELECT id FROM products WHERE code = ?', [code]);
     if (existing) {
       await run(
         `UPDATE products 
-         SET name = ?, category = ?, unit = ?, is_outsource = ?, is_metered = ?, base_price = ?, sell_price = ?, stock = ?, updated_at = CURRENT_TIMESTAMP 
+         SET name = ?, category = ?, unit = ?, is_outsource = ?, is_metered = ?, base_price = ?, sell_price = ?, stock = ?, supplier_id = ?, updated_at = CURRENT_TIMESTAMP 
          WHERE id = ?`,
         [
           name,
@@ -72,14 +98,15 @@ const ProductModel = {
           base_price || 0,
           sell_price || 0,
           stock || 0,
+          supplier_id || null,
           existing.id
         ]
       );
       return { id: existing.id, status: 'updated' };
     } else {
       const res = await run(
-        `INSERT INTO products (code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO products (code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           code,
           name,
@@ -89,7 +116,8 @@ const ProductModel = {
           is_metered ? 1 : 0,
           base_price || 0,
           sell_price || 0,
-          stock || 0
+          stock || 0,
+          supplier_id || null
         ]
       );
       return { id: res.lastID, status: 'created' };

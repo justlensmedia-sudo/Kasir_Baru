@@ -23,6 +23,8 @@ const pageTitles = {
   vendor: { title: 'Menu Vendor Outsource', subtitle: 'Kelola mitra cetak luar, spanduk, banner & margin HPP' },
   laporan: { title: 'Menu Laporan Transaksi & Keuangan', subtitle: 'Riwayat transaksi penjualan dan analisis Laba Kotor' },
   excel: { title: 'Kelola Data via Excel', subtitle: 'Ekspor data master & impor massal via file Excel (.xlsx)' },
+  users: { title: 'Kelola Akun Kasir & User', subtitle: 'Manajemen akun login kasir, reset password, dan status akses' },
+  logs: { title: 'Audit Log Aktivitas User', subtitle: 'Rekam jejak aktivitas kerja kasir, login, dan transaksi real-time' },
   pengaturan: { title: 'Pengaturan & Backup System', subtitle: 'Branding logo usaha, sinkronisasi GitHub, dan manajemen database' }
 };
 
@@ -408,17 +410,21 @@ function renderBarangTable() {
     const stockBadge = isLowStock 
       ? `<span class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Menipis (${b.stock})</span>`
       : `<span class="badge badge-success"><i class="fa-solid fa-check"></i> Aman (${b.stock})</span>`;
+    const supplierText = b.supplier_name ? `<span class="badge badge-outline"><i class="fa-solid fa-truck-field mr-1"></i> ${b.supplier_name}</span>` : '<span class="text-muted">-</span>';
 
     return `
       <tr>
         <td><code>${b.code}</code></td>
-        <td><strong>${b.name}</strong></td>
+        <td><strong>${b.name}</strong><br>${supplierText}</td>
         <td><span class="badge badge-secondary">${b.category}</span></td>
         <td><strong>${b.stock}</strong></td>
         <td>${formatRupiah(b.base_price)}</td>
         <td><strong class="text-success">${formatRupiah(b.sell_price)}</strong></td>
         <td>${stockBadge}</td>
         <td class="text-center">
+          <button class="btn btn-icon btn-info" onclick="previewBarcode('${b.code}', '${b.name.replace(/'/g, "\\'")}', ${b.sell_price})" title="Preview Barcode">
+            <i class="fa-solid fa-barcode"></i>
+          </button>
           <button class="btn btn-icon btn-edit" onclick="openModalBarang(${b.id})" title="Edit Barang">
             <i class="fa-solid fa-pen"></i>
           </button>
@@ -431,7 +437,26 @@ function renderBarangTable() {
   }).join('');
 }
 
-function openModalBarang(barangId = null) {
+async function populateSupplierDropdown(selectId, selectedId = null) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  
+  if (!state.suppliers || state.suppliers.length === 0) {
+    try {
+      const res = await apiRequest('/suppliers');
+      state.suppliers = res.data || [];
+    } catch (e) {}
+  }
+
+  let html = '<option value="">-- Tanpa Supplier / Umum --</option>';
+  state.suppliers.forEach(s => {
+    const isSelected = selectedId && parseInt(selectedId) === parseInt(s.id) ? 'selected' : '';
+    html += `<option value="${s.id}" ${isSelected}>${s.name}</option>`;
+  });
+  select.innerHTML = html;
+}
+
+async function openModalBarang(barangId = null) {
   const form = document.getElementById('formBarang');
   form.reset();
 
@@ -446,12 +471,13 @@ function openModalBarang(barangId = null) {
       document.getElementById('barangStock').value = barang.stock;
       document.getElementById('barangBasePrice').value = barang.base_price;
       document.getElementById('barangSellPrice').value = barang.sell_price;
+      await populateSupplierDropdown('barangSupplier', barang.supplier_id);
     }
   } else {
     document.getElementById('modalBarangTitle').innerHTML = `<i class="fa-solid fa-box-open"></i> Form Input Barang Baru (In-House)`;
     document.getElementById('barangId').value = '';
-    // Generate default unique code
     document.getElementById('barangCode').value = 'PRD-' + Math.floor(100 + Math.random() * 900);
+    await populateSupplierDropdown('barangSupplier', null);
   }
   openModal('modalBarang');
 }
@@ -459,6 +485,7 @@ function openModalBarang(barangId = null) {
 async function handleBarangSubmit(e) {
   e.preventDefault();
   const id = document.getElementById('barangId').value;
+  const supplierVal = document.getElementById('barangSupplier').value;
   const body = {
     code: document.getElementById('barangCode').value.trim(),
     category: document.getElementById('barangCategory').value,
@@ -467,7 +494,8 @@ async function handleBarangSubmit(e) {
     is_metered: 0,
     stock: parseInt(document.getElementById('barangStock').value) || 0,
     base_price: parseInt(document.getElementById('barangBasePrice').value) || 0,
-    sell_price: parseInt(document.getElementById('barangSellPrice').value) || 0
+    sell_price: parseInt(document.getElementById('barangSellPrice').value) || 0,
+    supplier_id: supplierVal ? parseInt(supplierVal, 10) : null
   };
 
   try {
@@ -1268,6 +1296,203 @@ async function triggerDatabaseReset() {
     showToast(err.message || 'Gagal reset database', 'error');
   } finally {
     if (btn) btn.disabled = false;
+  }
+}
+
+/* ==========================================================================
+   8. MANAJEMEN AKUN KASIR / USER & AUDIT LOGS
+   ========================================================================== */
+async function loadUsersData() {
+  const tbody = document.getElementById('userTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="text-center">Memuat akun kasir...</td></tr>';
+
+  try {
+    const res = await apiRequest('/users');
+    const users = res.data || [];
+
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center">Belum ada akun kasir terdaftar.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = users.map(u => {
+      const statusBadge = u.is_active === 1
+        ? `<span class="badge badge-success"><i class="fa-solid fa-check-circle"></i> Aktif</span>`
+        : `<span class="badge badge-danger"><i class="fa-solid fa-ban"></i> Nonaktif</span>`;
+      const roleBadge = u.role === 'admin'
+        ? `<span class="badge badge-primary"><i class="fa-solid fa-user-shield"></i> Admin</span>`
+        : `<span class="badge badge-secondary"><i class="fa-solid fa-user"></i> Kasir</span>`;
+
+      return `
+        <tr>
+          <td>#${u.id}</td>
+          <td><strong>${u.name}</strong></td>
+          <td><code>${u.username}</code></td>
+          <td>${roleBadge}</td>
+          <td>${statusBadge}</td>
+          <td><small class="text-muted">${new Date(u.created_at).toLocaleDateString('id-ID')}</small></td>
+          <td class="text-center">
+            <button class="btn btn-icon btn-edit" onclick="openModalUser(${u.id})" title="Edit Akun">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="btn btn-icon btn-warning" onclick="openModalResetPassword(${u.id}, '${u.name.replace(/'/g, "\\'")}')" title="Reset Password">
+              <i class="fa-solid fa-key"></i>
+            </button>
+            <button class="btn btn-icon ${u.is_active === 1 ? 'btn-delete' : 'btn-success'}" onclick="toggleUserStatus(${u.id})" title="${u.is_active === 1 ? 'Nonaktifkan' : 'Aktifkan'}">
+              <i class="fa-solid ${u.is_active === 1 ? 'fa-user-slash' : 'fa-user-check'}"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Gagal memuat akun pengguna: ${err.message}</td></tr>`;
+  }
+}
+
+function openModalUser(userId = null) {
+  const form = document.getElementById('formUser');
+  if (form) form.reset();
+
+  const pwdGroup = document.getElementById('userPasswordGroup');
+  const pwdInput = document.getElementById('userPassword');
+
+  if (userId) {
+    document.getElementById('modalUserTitle').innerHTML = `<i class="fa-solid fa-user-pen"></i> Edit Akun Kasir #${userId}`;
+    document.getElementById('userId').value = userId;
+    if (pwdGroup) pwdGroup.style.display = 'none';
+    if (pwdInput) pwdInput.required = false;
+
+    apiRequest(`/users/${userId}`).then(res => {
+      if (res.data) {
+        document.getElementById('userFullName').value = res.data.name;
+        document.getElementById('userUsername').value = res.data.username;
+        document.getElementById('userRole').value = res.data.role;
+        document.getElementById('userStatus').value = res.data.is_active;
+      }
+    });
+  } else {
+    document.getElementById('modalUserTitle').innerHTML = `<i class="fa-solid fa-user-plus"></i> Form Tambah Akun Kasir Baru`;
+    document.getElementById('userId').value = '';
+    if (pwdGroup) pwdGroup.style.display = 'block';
+    if (pwdInput) pwdInput.required = true;
+  }
+  openModal('modalUser');
+}
+
+async function handleUserSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('userId').value;
+  const body = {
+    name: document.getElementById('userFullName').value.trim(),
+    username: document.getElementById('userUsername').value.trim(),
+    role: document.getElementById('userRole').value,
+    is_active: parseInt(document.getElementById('userStatus').value, 10)
+  };
+
+  if (!id) {
+    body.password = document.getElementById('userPassword').value;
+  }
+
+  try {
+    if (id) {
+      await apiRequest(`/users/${id}`, 'PUT', body);
+      showToast('Akun pengguna berhasil diperbarui!');
+    } else {
+      await apiRequest('/users', 'POST', body);
+      showToast('Akun kasir baru berhasil ditambahkan!');
+    }
+    closeModal('modalUser');
+    await loadUsersData();
+  } catch (err) {
+    showToast(err.message || 'Gagal menyimpan akun', 'error');
+  }
+}
+
+function openModalResetPassword(id, name) {
+  document.getElementById('resetUserId').value = id;
+  document.getElementById('resetUserTargetText').textContent = `Reset password untuk pengguna '${name}'`;
+  document.getElementById('newPassword').value = '';
+  openModal('modalResetPassword');
+}
+
+async function handleResetPasswordSubmit(e) {
+  e.preventDefault();
+  const id = document.getElementById('resetUserId').value;
+  const password = document.getElementById('newPassword').value;
+
+  try {
+    await apiRequest(`/users/${id}/reset-password`, 'PUT', { password });
+    showToast('Password akun berhasil direset!');
+    closeModal('modalResetPassword');
+  } catch (err) {
+    showToast(err.message || 'Gagal mereset password', 'error');
+  }
+}
+
+async function toggleUserStatus(id) {
+  try {
+    const res = await apiRequest(`/users/${id}/toggle-status`, 'PUT');
+    showToast(res.message || 'Status akun berhasil diubah!');
+    await loadUsersData();
+  } catch (err) {
+    showToast(err.message || 'Gagal mengubah status akun', 'error');
+  }
+}
+
+async function loadActivityLogs() {
+  const tbody = document.getElementById('logTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" class="text-center">Memuat rekam jejak log...</td></tr>';
+
+  try {
+    const res = await apiRequest('/logs?limit=100');
+    const logs = res.data || [];
+
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center">Belum ada catatan aktivitas.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logs.map(l => {
+      let actBadge = '<span class="badge badge-secondary">' + l.activity + '</span>';
+      if (l.activity.includes('Login')) actBadge = '<span class="badge badge-primary"><i class="fa-solid fa-sign-in-alt"></i> Login</span>';
+      else if (l.activity.includes('Transaksi')) actBadge = '<span class="badge badge-success"><i class="fa-solid fa-receipt"></i> Transaksi</span>';
+      else if (l.activity.includes('Batal')) actBadge = '<span class="badge badge-danger"><i class="fa-solid fa-ban"></i> Batal</span>';
+
+      return `
+        <tr>
+          <td>#${l.id}</td>
+          <td><small class="text-muted">${new Date(l.created_at).toLocaleString('id-ID')}</small></td>
+          <td><strong><i class="fa-solid fa-user mr-1 text-muted"></i> ${l.user_name}</strong></td>
+          <td>${actBadge}</td>
+          <td><small>${l.details || '-'}</small></td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Gagal memuat log aktivitas: ${err.message}</td></tr>`;
+  }
+}
+
+/* ==========================================================================
+   9. GENERATOR BARCODE & EKSPOR WORD (.docx)
+   ========================================================================== */
+function previewBarcode(code, name, price) {
+  document.getElementById('barcodeProductName').textContent = name;
+  document.getElementById('barcodeProductPrice').textContent = formatRupiah(price);
+  document.getElementById('barcodeCodeDisplay').textContent = code;
+  document.getElementById('barcodeImagePreview').src = `${API_BASE}/barcodes/generate?code=${encodeURIComponent(code)}`;
+  openModal('modalBarcode');
+}
+
+async function exportBarcodeWord() {
+  try {
+    showToast('Sedang membuat file Microsoft Word (.docx)...');
+    window.location.href = `${API_BASE}/barcodes/export-word`;
+  } catch (err) {
+    showToast('Gagal ekspor barcode ke Word: ' + err.message, 'error');
   }
 }
 

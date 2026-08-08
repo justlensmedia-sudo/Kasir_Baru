@@ -6,6 +6,8 @@ import PrintCalculatorModal from './components/PrintCalculatorModal';
 import Cart from './components/Cart';
 import OrderTrackerModal from './components/OrderTrackerModal';
 import ReceiptPrintModal from './components/ReceiptPrintModal';
+import LoginModal from './components/LoginModal';
+import ShiftSummaryModal from './components/ShiftSummaryModal';
 import { getServerUrl, checkServerHealth, syncMasterData, getOrders } from './services/api';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -17,12 +19,20 @@ export default function App() {
   const [cartItems, setCartItems] = useState([]);
   const [activeOrderCount, setActiveOrderCount] = useState(0);
 
+  // User Auth State
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('justlens_cashier_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isLoginOpen, setIsLoginOpen] = useState(!currentUser);
+
   // Modals state
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [isCalculatorModalOpen, setIsCalculatorModalOpen] = useState(false);
   const [selectedProductForCalc, setSelectedProductForCalc] = useState(null);
   const [isOrderTrackerOpen, setIsOrderTrackerOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
   const [transactionForPrint, setTransactionForPrint] = useState(null);
   const [defaultPrintType, setDefaultPrintType] = useState('thermal');
 
@@ -209,6 +219,19 @@ export default function App() {
     setIsReceiptModalOpen(true);
   };
 
+  // Auth Handlers
+  const handleLoginSuccess = (userData) => {
+    setCurrentUser(userData);
+    setIsLoginOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('justlens_jwt_token');
+    localStorage.removeItem('justlens_cashier_user');
+    setCurrentUser(null);
+    setIsLoginOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       
@@ -221,6 +244,9 @@ export default function App() {
         isSyncing={isSyncing}
         onOpenOrderTracker={() => setIsOrderTrackerOpen(true)}
         activeOrderCount={activeOrderCount}
+        currentUser={currentUser}
+        onOpenShiftSummary={() => setIsShiftSummaryOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -262,6 +288,19 @@ export default function App() {
       </main>
 
       {/* MODALS */}
+      <LoginModal
+        isOpen={isLoginOpen || !currentUser}
+        serverUrl={serverUrl}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      <ShiftSummaryModal
+        isOpen={isShiftSummaryOpen}
+        onClose={() => setIsShiftSummaryOpen(false)}
+        serverUrl={serverUrl}
+        currentUser={currentUser}
+      />
+
       <ServerConfigModal
         isOpen={isServerModalOpen}
         onClose={() => setIsServerModalOpen(false)}

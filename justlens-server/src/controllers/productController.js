@@ -29,7 +29,7 @@ const productController = {
 
   create: async (req, res, next) => {
     try {
-      const { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock } = req.body;
+      const { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id } = req.body;
 
       if (!code || !name || !category) {
         return res.status(400).json({ success: false, message: 'Kode, nama produk, dan kategori wajib diisi.' });
@@ -49,7 +49,8 @@ const productController = {
         is_metered,
         base_price,
         sell_price,
-        stock
+        stock,
+        supplier_id: supplier_id || null
       });
 
       const newProduct = await ProductModel.getById(id);
@@ -62,7 +63,7 @@ const productController = {
   update: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock } = req.body;
+      const { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id } = req.body;
 
       const existing = await ProductModel.getById(id);
       if (!existing) {
@@ -85,7 +86,8 @@ const productController = {
         is_metered: is_metered !== undefined ? is_metered : existing.is_metered,
         base_price: base_price !== undefined ? base_price : existing.base_price,
         sell_price: sell_price !== undefined ? sell_price : existing.sell_price,
-        stock: stock !== undefined ? stock : existing.stock
+        stock: stock !== undefined ? stock : existing.stock,
+        supplier_id: supplier_id !== undefined ? supplier_id : existing.supplier_id
       });
 
       const updatedProduct = await ProductModel.getById(id);
@@ -133,7 +135,9 @@ const productController = {
           Harga_Modal: p.base_price || 0,
           Harga_Jual: p.sell_price || 0,
           Stok_Awal: p.stock || 0,
-          Satuan: p.unit || 'Pcs'
+          Satuan: p.unit || 'Pcs',
+          ID_Supplier: p.supplier_id || '',
+          Nama_Supplier: p.supplier_name || ''
         }));
       } else {
         excelRows = [
@@ -144,25 +148,9 @@ const productController = {
             Harga_Modal: 35000,
             Harga_Jual: 55000,
             Stok_Awal: 50,
-            Satuan: 'Rim'
-          },
-          {
-            Kode_Barcode: 'PRD-OUT-001',
-            Nama_Barang: 'Banner Flexi 280gr Standard',
-            Kategori: 'Banner Outdoor',
-            Harga_Modal: 12000,
-            Harga_Jual: 25000,
-            Stok_Awal: 999,
-            Satuan: 'm²'
-          },
-          {
-            Kode_Barcode: 'PRD-ATK-001',
-            Nama_Barang: 'Pulpen Gel Hitam 0.5mm',
-            Kategori: 'ATK',
-            Harga_Modal: 2500,
-            Harga_Jual: 5000,
-            Stok_Awal: 24,
-            Satuan: 'Pcs'
+            Satuan: 'Rim',
+            ID_Supplier: 1,
+            Nama_Supplier: 'PT Paper Indah'
           }
         ];
       }
@@ -175,7 +163,9 @@ const productController = {
         { wch: 15 },
         { wch: 15 },
         { wch: 12 },
-        { wch: 12 }
+        { wch: 12 },
+        { wch: 14 },
+        { wch: 25 }
       ];
 
       const workbook = XLSX.utils.book_new();
@@ -218,6 +208,7 @@ const productController = {
         const sell_price = parseFloat(row['Harga_Jual'] || row['sell_price'] || 0) || 0;
         const stock = parseFloat(row['Stok_Awal'] || row['stock'] || 0) || 0;
         const unit = String(row['Satuan'] || row['unit'] || 'Pcs').trim();
+        const supplier_id = parseInt(row['ID_Supplier'] || row['supplier_id'] || 0, 10) || null;
 
         if (!code || !name) {
           errors.push(`Baris ${i + 2}: Kode_Barcode dan Nama_Barang wajib diisi.`);
@@ -237,7 +228,8 @@ const productController = {
           is_metered,
           base_price,
           sell_price,
-          stock
+          stock,
+          supplier_id
         });
 
         if (result.status === 'created') createdCount++;

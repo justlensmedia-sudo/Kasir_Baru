@@ -16,6 +16,7 @@ const autoInitDb = async () => {
         name TEXT NOT NULL,
         username TEXT UNIQUE NOT NULL,
         role TEXT DEFAULT 'kasir',
+        is_active INTEGER DEFAULT 1,
         password_hash TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -86,8 +87,10 @@ const autoInitDb = async () => {
         base_price REAL DEFAULT 0,
         sell_price REAL DEFAULT 0,
         stock REAL DEFAULT 0,
+        supplier_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
       );
 
       CREATE TABLE IF NOT EXISTS finishing_options (
@@ -132,14 +135,28 @@ const autoInitDb = async () => {
         value TEXT,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        user_name TEXT NOT NULL,
+        activity TEXT NOT NULL,
+        details TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      );
     `;
 
     await exec(schemaSql);
     try {
       await exec("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'Pcs'");
-    } catch (e) {
-      // Column already exists, ignore
-    }
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1");
+    } catch (e) {}
     console.log('✓ Skema Database SQLite siap/terverifikasi.');
 
     // 2. Auto Seed Initial User Accounts ONLY if empty

@@ -172,6 +172,43 @@ const ReportModel = {
         profit_margin_percent: Math.round(profitMargin * 100) / 100
       }
     };
+  },
+
+  getDailyShiftReport: async (dateStr = null) => {
+    const targetDate = dateStr || new Date().toISOString().split('T')[0];
+    const startDate = `${targetDate} 00:00:00`;
+    const endDate = `${targetDate} 23:59:59`;
+
+    const summary = await get(
+      `SELECT 
+        COUNT(*) as total_transactions, 
+        COALESCE(SUM(total_amount), 0) as total_revenue, 
+        COALESCE(SUM(dp_amount), 0) as total_dp_collected,
+        COALESCE(SUM(CASE WHEN payment_status = 'Lunas' THEN total_amount ELSE 0 END), 0) as total_lunas_amount,
+        COALESCE(SUM(CASE WHEN payment_status = 'DP' THEN dp_amount ELSE 0 END), 0) as total_dp_amount,
+        COALESCE(SUM(CASE WHEN payment_status = 'Belum Bayar' THEN total_amount ELSE 0 END), 0) as total_unpaid_amount
+       FROM transactions WHERE created_at BETWEEN ? AND ?`,
+      [startDate, endDate]
+    );
+
+    const breakdown = await query(
+      `SELECT payment_status, COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_amount 
+       FROM transactions WHERE created_at BETWEEN ? AND ? GROUP BY payment_status`,
+      [startDate, endDate]
+    );
+
+    const recentTx = await query(
+      `SELECT transaction_no, customer_name, total_amount, dp_amount, payment_status, created_at 
+       FROM transactions WHERE created_at BETWEEN ? AND ? ORDER BY id DESC`,
+      [startDate, endDate]
+    );
+
+    return {
+      date: targetDate,
+      summary,
+      breakdown,
+      transactions: recentTx
+    };
   }
 };
 

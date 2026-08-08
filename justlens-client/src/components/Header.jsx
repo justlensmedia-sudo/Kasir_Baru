@@ -8,7 +8,10 @@ export default function Header({
   onSyncData, 
   isSyncing,
   onOpenOrderTracker,
-  activeOrderCount = 0
+  activeOrderCount = 0,
+  currentUser,
+  onOpenShiftSummary,
+  onLogout
 }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [logoUrl, setLogoUrl] = useState(null);
@@ -55,6 +58,25 @@ export default function Header({
         {/* Server Connection Badge & Actions */}
         <div className="flex items-center flex-wrap gap-2 text-sm">
           
+          {/* Active Cashier Badge */}
+          {currentUser && (
+            <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span className="font-bold text-cyan-300">{currentUser.name}</span>
+              <span className="text-[10px] text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded">({currentUser.role})</span>
+            </div>
+          )}
+
+          {/* Shift Report Button */}
+          <button
+            onClick={onOpenShiftSummary}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/80 text-xs font-medium transition-colors"
+            title="Lihat Laporan Shift Harian"
+          >
+            <Printer className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Shift Harian</span>
+          </button>
+
           {/* Connection Status Button */}
           <button
             onClick={onOpenServerModal}
@@ -66,10 +88,9 @@ export default function Header({
             title="Klik untuk mengubah Pengaturan IP Server"
           >
             {isConnected ? <Wifi className="w-4 h-4 text-emerald-400 animate-pulse" /> : <WifiOff className="w-4 h-4 text-rose-400" />}
-            <span className="truncate max-w-[160px] md:max-w-[220px]">
+            <span className="truncate max-w-[140px]">
               {serverUrl.replace(/^https?:\/\//, '')}
             </span>
-            <Server className="w-3.5 h-3.5 opacity-70 ml-1" />
           </button>
 
           {/* Sync Master Data */}
@@ -97,10 +118,16 @@ export default function Header({
             )}
           </button>
 
-          {/* Time Display */}
-          <div className="hidden lg:flex items-center text-xs text-slate-400 bg-slate-950/60 border border-slate-800 px-2.5 py-1 rounded-md">
-            <span>{currentTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-          </div>
+          {/* Logout Button */}
+          {currentUser && (
+            <button
+              onClick={onLogout}
+              className="px-2.5 py-1.5 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/30 text-xs font-medium transition-colors"
+              title="Keluar dari akun kasir"
+            >
+              Logout
+            </button>
+          )}
 
         </div>
 
