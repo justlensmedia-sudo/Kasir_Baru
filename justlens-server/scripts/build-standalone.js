@@ -120,20 +120,33 @@ if (fs.existsSync(compiledExe)) {
   }
 }
 
-// 6. Consolidate dist folder so ONLY the final setup executable remains in dist/
-fs.readdirSync(distDir).forEach(file => {
-  if (file !== targetSetupExeName) {
-    const fullPath = path.join(distDir, file);
-    try {
-      if (fs.lstatSync(fullPath).isDirectory()) {
-        fs.rmSync(fullPath, { recursive: true, force: true });
-      } else {
-        fs.unlinkSync(fullPath);
-      }
-      console.log(`🧹 Cleaned up temporary file from dist/: ${file}`);
-    } catch (e) {}
+// 6. Copy .env and Production Database files to dist/ & retain all supporting files
+console.log('📄 Step 6: Bundling environment config, database, and web assets to dist/...');
+['.env', '.env.example'].forEach(envFile => {
+  const envSrc = path.join(rootDir, envFile);
+  if (fs.existsSync(envSrc)) {
+    fs.copyFileSync(envSrc, path.join(distDir, envFile));
+    console.log(`✓ Copied ${envFile} to dist/`);
   }
 });
+
+const srcDbPath = path.join(rootDir, 'src', 'database', 'database.sqlite');
+if (fs.existsSync(srcDbPath)) {
+  ['database.sqlite', 'justlens.sqlite', 'justlens_prod.sqlite'].forEach(dbName => {
+    fs.copyFileSync(srcDbPath, path.join(distDir, dbName));
+    console.log(`✓ Bundled production database ${dbName} to dist/`);
+  });
+}
+
+// Copy public directory (UI Backoffice Dashboard & Assets)
+const publicSrc = path.join(rootDir, 'public');
+const publicDist = path.join(distDir, 'public');
+if (fs.existsSync(publicSrc)) {
+  fs.cpSync(publicSrc, publicDist, { recursive: true });
+  console.log('✓ Bundled public/ static UI dashboard assets to dist/');
+}
+
+console.log('✓ All supporting files, service setup scripts, and database preserved in dist/');
 
 console.log('==================================================');
 console.log('🎉 Standalone Server Build Ready in dist/ directory!');
