@@ -18,5 +18,6 @@
   "java.help.firstCheck": false,
   "java.help.showReleaseNotes": false,
   "java.server.launchMode": "Off",
-  "java.errors.incompleteClasspath.severity": "ignore"
+  "java.errors.incompleteClasspath.severity": "ignore",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }
