@@ -1,0 +1,22 @@
+{
+  "java.autobuild.enabled": false,
+  "java.showWhenChangesToClasspathIfAutoBuildEnabled": false,
+  "java.completion.enabled": false,
+  "java.debug.settings.enableRunDebugCodeLens": false,
+  "java.jdt.ls.java.home": "C:\\Program Files\\Android\\Android Studio\\jbr",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-21",
+      "path": "C:\\Program Files\\Android\\Android Studio\\jbr",
+      "default": true
+    },
+    {
+      "name": "JavaSE-17",
+      "path": "C:\\Program Files\\Android\\Android Studio\\jbr"
+    }
+  ],
+  "java.help.firstCheck": false,
+  "java.help.showReleaseNotes": false,
+  "java.server.launchMode": "Off",
+  "java.errors.incompleteClasspath.severity": "ignore"
+}

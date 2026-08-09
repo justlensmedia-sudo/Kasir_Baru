@@ -21,6 +21,8 @@ d:/electron-builder-cache
 d:/electron-cache
 
 # Local IDE & OS
+!.vscode/settings.json
+!**/.vscode/settings.json
 .vscode/
 .idea/
 Thumbs.db
