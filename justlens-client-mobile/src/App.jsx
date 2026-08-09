@@ -71,14 +71,23 @@ export default function App() {
         const updated = [...prev];
         const newQty = updated[idx].qty + 1;
         updated[idx].qty = newQty;
-        updated[idx].subtotal = newQty * updated[idx].price;
+        const discountNum = updated[idx].discount_amount || 0;
+        updated[idx].subtotal = Math.max(0, newQty * updated[idx].price - discountNum);
         return updated;
       } else {
         const price = Number(product.sell_price || 0);
         return [...prev, {
           product_id: product.id,
+          code: product.code,
           name: product.name,
           category: product.category,
+          unit: product.unit || product.base_unit || 'Pcs',
+          base_unit: product.base_unit || 'lembar',
+          purchase_unit: product.purchase_unit || 'rim',
+          conversion_ratio: product.conversion_ratio || 500,
+          is_discountable: product.is_discountable !== undefined ? product.is_discountable : 1,
+          max_discount_percent: product.max_discount_percent || 0,
+          discount_amount: 0,
           is_outsource: product.is_outsource,
           is_metered: product.is_metered,
           vendor_cost_per_unit: Number(product.base_price || 0),
@@ -97,8 +106,28 @@ export default function App() {
     }
     setCartItems(prev => {
       const updated = [...prev];
+      const discountNum = updated[idx].discount_amount || 0;
       updated[idx].qty = newQty;
-      updated[idx].subtotal = newQty * updated[idx].price;
+      updated[idx].subtotal = Math.max(0, newQty * updated[idx].price - discountNum);
+      return updated;
+    });
+  };
+
+  const handleUpdateCartDiscount = (idx, rawDiscount) => {
+    setCartItems(prev => {
+      const updated = [...prev];
+      const item = updated[idx];
+      if (!item) return prev;
+      if (item.is_discountable === 0 || item.is_discountable === false) return prev;
+
+      let discountNum = Number(rawDiscount) || 0;
+      if (item.max_discount_percent > 0) {
+        const maxNominal = (item.price * item.qty * item.max_discount_percent) / 100;
+        if (discountNum > maxNominal) discountNum = maxNominal;
+      }
+
+      updated[idx].discount_amount = discountNum;
+      updated[idx].subtotal = Math.max(0, item.qty * item.price - discountNum);
       return updated;
     });
   };
@@ -225,6 +254,7 @@ export default function App() {
         <MobileCart
           cartItems={cartItems}
           onUpdateQty={handleUpdateCartQty}
+          onUpdateDiscount={handleUpdateCartDiscount}
           onRemoveItem={handleRemoveCartItem}
           onClearCart={handleClearCart}
           currentUser={currentUser}

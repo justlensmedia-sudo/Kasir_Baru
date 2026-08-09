@@ -10,7 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development VITE_DEV_SERVER_URL=http://localhost:3000 electron .\"",
-    "electron:build": "vite build && cross-env TEMP=D:\\temp TMP=D:\\temp ELECTRON_BUILDER_CACHE=D:\\electron-builder-cache ELECTRON_CACHE=D:\\electron-cache electron-builder --win && node -e \"const fs=require('fs'); if(!fs.existsSync('dist')) fs.mkdirSync('dist'); if(fs.existsSync('release/Justlens-Kasir-Setup-v1.1.exe')) fs.copyFileSync('release/Justlens-Kasir-Setup-v1.1.exe', 'dist/Justlens-Kasir-Setup-v1.1.exe')\""
+    "electron:build": "vite build && cross-env TEMP=D:\\temp TMP=D:\\temp ELECTRON_BUILDER_CACHE=D:\\electron-builder-cache ELECTRON_CACHE=D:\\electron-cache electron-builder --win && node -e \"const fs=require('fs'); if(!fs.existsSync('dist')) fs.mkdirSync('dist'); if(!fs.existsSync('../dist')) fs.mkdirSync('../dist'); if(fs.existsSync('release/Justlens-Kasir-Setup-v1.2.exe')) { fs.copyFileSync('release/Justlens-Kasir-Setup-v1.2.exe', 'dist/Justlens-Kasir-Setup-v1.2.exe'); fs.copyFileSync('release/Justlens-Kasir-Setup-v1.2.exe', '../dist/Justlens-Kasir-Setup-v1.2.exe'); }\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -34,7 +34,7 @@
   "build": {
     "appId": "com.justlens.kasir",
     "productName": "Justlens Kasir",
-    "artifactName": "Justlens-Kasir-Setup-v1.1.exe",
+    "artifactName": "Justlens-Kasir-Setup-v1.2.exe",
     "directories": {
       "output": "release"
     },

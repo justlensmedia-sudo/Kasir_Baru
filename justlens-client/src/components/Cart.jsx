@@ -5,11 +5,13 @@ import { createTransaction } from '../services/api';
 export default function Cart({
   cartItems = [],
   onUpdateQty,
+  onUpdateDiscount,
+  onUpdateUnit,
   onRemoveItem,
   onClearCart,
   onTransactionSuccess
 }) {
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [paymentStatus, setPaymentStatus] = useState('Lunas'); // 'Lunas', 'DP'
   const [dpAmount, setDpAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Tunai'); // 'Tunai', 'QRIS', 'Transfer'
@@ -32,10 +34,7 @@ export default function Cart({
 
   const handleCheckout = async () => {
     setErrorMessage('');
-    if (!customerName.trim()) {
-      setErrorMessage('Nama pelanggan wajib diisi.');
-      return;
-    }
+    const finalCustomerName = customerName.trim() || 'Walk-in Customer';
     if (cartItems.length === 0) {
       setErrorMessage('Keranjang belanja masih kosong.');
       return;
@@ -52,7 +51,7 @@ export default function Cart({
     setIsSubmitting(true);
 
     const payload = {
-      customer_name: customerName.trim(),
+      customer_name: finalCustomerName,
       total_amount: grandTotal,
       dp_amount: paymentStatus === 'DP' ? Number(dpAmount) : grandTotal,
       payment_status: paymentStatus,
@@ -63,7 +62,9 @@ export default function Cart({
         width: item.width || 0,
         length: item.length || 0,
         qty: item.qty,
-        price: item.price,
+        unit: item.unit || 'Pcs',
+        price: item.unit_price !== undefined ? item.unit_price : item.price,
+        discount_amount: item.discount_amount || 0,
         subtotal: item.subtotal,
         vendor_cost: item.vendor_cost || 0,
         // Extra meta for receipt/spk display
@@ -84,14 +85,14 @@ export default function Cart({
       if (onTransactionSuccess) {
         onTransactionSuccess({
           ...transactionData,
-          customer_name: customerName.trim(),
+          customer_name: finalCustomerName,
           payment_method: paymentMethod,
           items: cartItems, // retain rich items with descriptions
         });
       }
 
-      // Reset form
-      setCustomerName('');
+      // Reset form to default Walk-in Customer
+      setCustomerName('Walk-in Customer');
       setDpAmount('');
       setPaymentStatus('Lunas');
       onClearCart();
@@ -192,6 +193,50 @@ export default function Cart({
                 </button>
               </div>
 
+              {/* Unit Selection & Discount Control */}
+              <div className="flex items-center justify-between gap-2 pt-1 text-[11px]">
+                {/* Selling Unit selector (e.g. Lembar vs Rim for paper/ATK) */}
+                {item.base_unit && item.purchase_unit ? (
+                  <div className="flex items-center gap-1">
+                    <span className="text-slate-400">Satuan:</span>
+                    <select
+                      value={item.unit || item.base_unit}
+                      onChange={(e) => onUpdateUnit && onUpdateUnit(index, e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-cyan-300 font-bold rounded px-1.5 py-0.5 text-[11px] focus:outline-none"
+                    >
+                      <option value={item.base_unit}>{item.base_unit}</option>
+                      <option value={item.purchase_unit}>{item.purchase_unit} ({item.conversion_ratio || 500} {item.base_unit})</option>
+                    </select>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 font-mono">({item.unit || 'Pcs'})</span>
+                )}
+
+                {/* Controlled Discount Field */}
+                <div className="flex items-center gap-1">
+                  <span className="text-slate-400">Diskon (Rp):</span>
+                  {item.is_discountable === 0 || item.is_discountable === false ? (
+                    <input
+                      type="text"
+                      disabled
+                      value="Nonaktif"
+                      title="Item ini tidak dapat didiskon (is_discountable = false)"
+                      className="w-16 bg-slate-900/60 border border-slate-800 text-slate-500 rounded px-1 py-0.5 text-center text-[10px] cursor-not-allowed"
+                    />
+                  ) : (
+                    <input
+                      type="number"
+                      min="0"
+                      value={item.discount_amount || ''}
+                      onChange={(e) => onUpdateDiscount && onUpdateDiscount(index, e.target.value)}
+                      placeholder="0"
+                      title={item.max_discount_percent > 0 ? `Max diskon: ${item.max_discount_percent}%` : 'Diskon nominal Rp'}
+                      className="w-16 bg-slate-950 border border-slate-700 focus:border-cyan-500 text-emerald-300 rounded px-1.5 py-0.5 text-center font-mono font-bold text-[11px] outline-none"
+                    />
+                  )}
+                </div>
+              </div>
+
               {/* Quantity Controls & Price */}
               <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
                 <div className="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
@@ -234,9 +279,16 @@ export default function Cart({
                   </button>
                 </div>
 
-                <span className="font-bold text-emerald-400 font-mono">
-                  Rp {(Number(item.subtotal) || 0).toLocaleString('id-ID')}
-                </span>
+                <div className="text-right">
+                  {item.discount_amount > 0 && (
+                    <span className="block text-[10px] text-rose-400 line-through">
+                      Rp {((item.unit_price || item.price) * item.qty).toLocaleString('id-ID')}
+                    </span>
+                  )}
+                  <span className="font-bold text-emerald-400 font-mono">
+                    Rp {(Number(item.subtotal) || 0).toLocaleString('id-ID')}
+                  </span>
+                </div>
               </div>
             </div>
           ))

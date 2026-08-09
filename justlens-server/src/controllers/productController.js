@@ -2,6 +2,7 @@ const ProductModel = require('../models/productModel');
 const MaterialModel = require('../models/materialModel');
 const FinishingModel = require('../models/finishingModel');
 const VendorModel = require('../models/vendorModel');
+const SupplierModel = require('../models/supplierModel');
 const XLSX = require('xlsx');
 
 const productController = {
@@ -29,10 +30,19 @@ const productController = {
 
   create: async (req, res, next) => {
     try {
-      const { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id } = req.body;
+      const { code, name, category, unit, base_unit, purchase_unit, conversion_ratio, tiered_pricing, is_discountable, max_discount_percent, is_outsource, is_metered, base_price, sell_price, stock, supplier_id } = req.body;
 
       if (!code || !name || !category) {
         return res.status(400).json({ success: false, message: 'Kode, nama produk, dan kategori wajib diisi.' });
+      }
+
+      if (!supplier_id) {
+        return res.status(400).json({ success: false, message: 'Supplier ID wajib diisi dan terdaftar di database.' });
+      }
+
+      const supplier = await SupplierModel.getById(supplier_id);
+      if (!supplier) {
+        return res.status(400).json({ success: false, message: `Supplier dengan ID '${supplier_id}' tidak terdaftar di database.` });
       }
 
       const existingCode = await ProductModel.getByCode(code);
@@ -45,12 +55,18 @@ const productController = {
         name,
         category,
         unit: unit || 'Pcs',
+        base_unit: base_unit || 'lembar',
+        purchase_unit: purchase_unit || 'rim',
+        conversion_ratio: conversion_ratio !== undefined ? Number(conversion_ratio) : 500,
+        tiered_pricing: tiered_pricing || null,
+        is_discountable: is_discountable !== undefined ? (is_discountable ? 1 : 0) : 1,
+        max_discount_percent: max_discount_percent !== undefined ? Number(max_discount_percent) : 0,
         is_outsource,
         is_metered,
         base_price,
         sell_price,
         stock,
-        supplier_id: supplier_id || null
+        supplier_id
       });
 
       const newProduct = await ProductModel.getById(id);
@@ -63,11 +79,20 @@ const productController = {
   update: async (req, res, next) => {
     try {
       const { id } = req.params;
-      const { code, name, category, unit, is_outsource, is_metered, base_price, sell_price, stock, supplier_id } = req.body;
+      const { code, name, category, unit, base_unit, purchase_unit, conversion_ratio, tiered_pricing, is_discountable, max_discount_percent, is_outsource, is_metered, base_price, sell_price, stock, supplier_id } = req.body;
 
       const existing = await ProductModel.getById(id);
       if (!existing) {
         return res.status(404).json({ success: false, message: 'Produk tidak ditemukan.' });
+      }
+
+      const targetSupplierId = supplier_id !== undefined ? supplier_id : existing.supplier_id;
+      if (!targetSupplierId) {
+        return res.status(400).json({ success: false, message: 'Supplier ID wajib diisi dan terdaftar di database.' });
+      }
+      const supplier = await SupplierModel.getById(targetSupplierId);
+      if (!supplier) {
+        return res.status(400).json({ success: false, message: `Supplier dengan ID '${targetSupplierId}' tidak terdaftar di database.` });
       }
 
       if (code && code !== existing.code) {
@@ -82,12 +107,18 @@ const productController = {
         name: name || existing.name,
         category: category || existing.category,
         unit: unit || existing.unit || 'Pcs',
+        base_unit: base_unit || existing.base_unit || 'lembar',
+        purchase_unit: purchase_unit || existing.purchase_unit || 'rim',
+        conversion_ratio: conversion_ratio !== undefined ? Number(conversion_ratio) : (existing.conversion_ratio || 500),
+        tiered_pricing: tiered_pricing !== undefined ? tiered_pricing : existing.tiered_pricing,
+        is_discountable: is_discountable !== undefined ? (is_discountable ? 1 : 0) : (existing.is_discountable !== undefined ? existing.is_discountable : 1),
+        max_discount_percent: max_discount_percent !== undefined ? Number(max_discount_percent) : (existing.max_discount_percent || 0),
         is_outsource: is_outsource !== undefined ? is_outsource : existing.is_outsource,
         is_metered: is_metered !== undefined ? is_metered : existing.is_metered,
         base_price: base_price !== undefined ? base_price : existing.base_price,
         sell_price: sell_price !== undefined ? sell_price : existing.sell_price,
         stock: stock !== undefined ? stock : existing.stock,
-        supplier_id: supplier_id !== undefined ? supplier_id : existing.supplier_id
+        supplier_id: targetSupplierId
       });
 
       const updatedProduct = await ProductModel.getById(id);
@@ -136,6 +167,11 @@ const productController = {
           Harga_Jual: p.sell_price || 0,
           Stok_Awal: p.stock || 0,
           Satuan: p.unit || 'Pcs',
+          Satuan_Dasar: p.base_unit || 'lembar',
+          Satuan_Beli: p.purchase_unit || 'rim',
+          Rasio_Konversi: p.conversion_ratio || 500,
+          Dapat_Diskon: p.is_discountable ? 1 : 0,
+          Max_Diskon_Persen: p.max_discount_percent || 0,
           ID_Supplier: p.supplier_id || '',
           Nama_Supplier: p.supplier_name || ''
         }));
@@ -149,6 +185,11 @@ const productController = {
             Harga_Jual: 55000,
             Stok_Awal: 50,
             Satuan: 'Rim',
+            Satuan_Dasar: 'lembar',
+            Satuan_Beli: 'rim',
+            Rasio_Konversi: 500,
+            Dapat_Diskon: 1,
+            Max_Diskon_Persen: 10,
             ID_Supplier: 1,
             Nama_Supplier: 'PT Paper Indah'
           }
@@ -164,6 +205,11 @@ const productController = {
         { wch: 15 },
         { wch: 12 },
         { wch: 12 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 15 },
+        { wch: 14 },
+        { wch: 18 },
         { wch: 14 },
         { wch: 25 }
       ];
@@ -208,10 +254,26 @@ const productController = {
         const sell_price = parseFloat(row['Harga_Jual'] || row['sell_price'] || 0) || 0;
         const stock = parseFloat(row['Stok_Awal'] || row['stock'] || 0) || 0;
         const unit = String(row['Satuan'] || row['unit'] || 'Pcs').trim();
+        const base_unit = String(row['Satuan_Dasar'] || row['base_unit'] || 'lembar').trim();
+        const purchase_unit = String(row['Satuan_Beli'] || row['purchase_unit'] || 'rim').trim();
+        const conversion_ratio = parseFloat(row['Rasio_Konversi'] || row['conversion_ratio'] || 500) || 500;
+        const is_discountable = row['Dapat_Diskon'] !== undefined ? (parseInt(row['Dapat_Diskon'], 10) === 0 ? 0 : 1) : 1;
+        const max_discount_percent = parseFloat(row['Max_Diskon_Persen'] || row['max_discount_percent'] || 0) || 0;
         const supplier_id = parseInt(row['ID_Supplier'] || row['supplier_id'] || 0, 10) || null;
 
         if (!code || !name) {
           errors.push(`Baris ${i + 2}: Kode_Barcode dan Nama_Barang wajib diisi.`);
+          continue;
+        }
+
+        if (!supplier_id) {
+          errors.push(`Baris ${i + 2}: ID_Supplier wajib diisi (Mandatory Relation).`);
+          continue;
+        }
+
+        const supplier = await SupplierModel.getById(supplier_id);
+        if (!supplier) {
+          errors.push(`Baris ${i + 2}: Supplier dengan ID '${supplier_id}' tidak ditemukan di database.`);
           continue;
         }
 
@@ -224,6 +286,11 @@ const productController = {
           name,
           category,
           unit,
+          base_unit,
+          purchase_unit,
+          conversion_ratio,
+          is_discountable,
+          max_discount_percent,
           is_outsource,
           is_metered,
           base_price,

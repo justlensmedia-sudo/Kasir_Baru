@@ -26,14 +26,16 @@ const TransactionModel = {
         const width = item.width || 0;
         const length = item.length || 0;
         const qty = item.qty || 1;
+        const unit = item.unit || 'Pcs';
         const price = item.price || 0;
-        const subtotal = item.subtotal || (width > 0 && length > 0 ? width * length * price * qty : price * qty);
+        const discount_amount = item.discount_amount || 0;
+        const subtotal = item.subtotal !== undefined ? item.subtotal : (width > 0 && length > 0 ? (width * length * price * qty) - discount_amount : (price * qty) - discount_amount);
         const vendor_cost = item.vendor_cost || 0;
 
         await run(
           `INSERT INTO transaction_items 
-           (transaction_id, product_id, finishing_option_id, width, length, qty, price, subtotal, vendor_cost)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (transaction_id, product_id, finishing_option_id, width, length, qty, unit, price, discount_amount, subtotal, vendor_cost)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             transaction_id,
             item.product_id || null,
@@ -41,15 +43,17 @@ const TransactionModel = {
             width,
             length,
             qty,
+            unit,
             price,
+            discount_amount,
             subtotal,
             vendor_cost
           ]
         );
 
-        // Deduct stock for non-outsource products
+        // Deduct stock for non-outsource products with unit awareness
         if (item.product_id) {
-          await ProductModel.deductStock(item.product_id, qty);
+          await ProductModel.deductStock(item.product_id, qty, unit);
         }
       }
     }

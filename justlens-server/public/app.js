@@ -448,7 +448,7 @@ async function populateSupplierDropdown(selectId, selectedId = null) {
     } catch (e) {}
   }
 
-  let html = '<option value="">-- Tanpa Supplier / Umum --</option>';
+  let html = '<option value="">-- Pilih Supplier Wajib --</option>';
   state.suppliers.forEach(s => {
     const isSelected = selectedId && parseInt(selectedId) === parseInt(s.id) ? 'selected' : '';
     html += `<option value="${s.id}" ${isSelected}>${s.name}</option>`;
@@ -468,15 +468,25 @@ async function openModalBarang(barangId = null) {
       document.getElementById('barangCode').value = barang.code;
       document.getElementById('barangCategory').value = barang.category;
       document.getElementById('barangName').value = barang.name;
+      document.getElementById('barangBaseUnit').value = barang.base_unit || 'lembar';
+      document.getElementById('barangPurchaseUnit').value = barang.purchase_unit || 'rim';
+      document.getElementById('barangConversionRatio').value = barang.conversion_ratio || 500;
       document.getElementById('barangStock').value = barang.stock;
       document.getElementById('barangBasePrice').value = barang.base_price;
       document.getElementById('barangSellPrice').value = barang.sell_price;
+      document.getElementById('barangIsDiscountable').checked = barang.is_discountable !== 0;
+      document.getElementById('barangMaxDiscountPercent').value = barang.max_discount_percent || 0;
       await populateSupplierDropdown('barangSupplier', barang.supplier_id);
     }
   } else {
     document.getElementById('modalBarangTitle').innerHTML = `<i class="fa-solid fa-box-open"></i> Form Input Barang Baru (In-House)`;
     document.getElementById('barangId').value = '';
     document.getElementById('barangCode').value = 'PRD-' + Math.floor(100 + Math.random() * 900);
+    document.getElementById('barangBaseUnit').value = 'lembar';
+    document.getElementById('barangPurchaseUnit').value = 'rim';
+    document.getElementById('barangConversionRatio').value = 500;
+    document.getElementById('barangIsDiscountable').checked = true;
+    document.getElementById('barangMaxDiscountPercent').value = 0;
     await populateSupplierDropdown('barangSupplier', null);
   }
   openModal('modalBarang');
@@ -486,16 +496,27 @@ async function handleBarangSubmit(e) {
   e.preventDefault();
   const id = document.getElementById('barangId').value;
   const supplierVal = document.getElementById('barangSupplier').value;
+
+  if (!supplierVal) {
+    showToast('Supplier Utama Wajib Dipilih!', 'error');
+    return;
+  }
+
   const body = {
     code: document.getElementById('barangCode').value.trim(),
     category: document.getElementById('barangCategory').value,
     name: document.getElementById('barangName').value.trim(),
+    base_unit: document.getElementById('barangBaseUnit').value.trim() || 'lembar',
+    purchase_unit: document.getElementById('barangPurchaseUnit').value.trim() || 'rim',
+    conversion_ratio: parseFloat(document.getElementById('barangConversionRatio').value) || 500,
+    is_discountable: document.getElementById('barangIsDiscountable').checked ? 1 : 0,
+    max_discount_percent: parseFloat(document.getElementById('barangMaxDiscountPercent').value) || 0,
     is_outsource: 0,
     is_metered: 0,
     stock: parseInt(document.getElementById('barangStock').value) || 0,
     base_price: parseInt(document.getElementById('barangBasePrice').value) || 0,
     sell_price: parseInt(document.getElementById('barangSellPrice').value) || 0,
-    supplier_id: supplierVal ? parseInt(supplierVal, 10) : null
+    supplier_id: parseInt(supplierVal, 10)
   };
 
   try {

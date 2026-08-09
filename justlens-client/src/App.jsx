@@ -112,6 +112,13 @@ export default function App() {
             code: product.code,
             name: product.name,
             category: product.category,
+            unit: product.unit || product.base_unit || 'Pcs',
+            base_unit: product.base_unit || 'lembar',
+            purchase_unit: product.purchase_unit || 'rim',
+            conversion_ratio: product.conversion_ratio || 500,
+            is_discountable: product.is_discountable !== undefined ? product.is_discountable : 1,
+            max_discount_percent: product.max_discount_percent || 0,
+            discount_amount: 0,
             is_metered: false,
             is_outsource: Boolean(product.is_outsource),
             length: 0,
@@ -142,6 +149,10 @@ export default function App() {
       ...prev,
       {
         ...cartItem,
+        unit: cartItem.unit || 'Pcs',
+        is_discountable: cartItem.is_discountable !== undefined ? cartItem.is_discountable : 1,
+        max_discount_percent: cartItem.max_discount_percent || 0,
+        discount_amount: cartItem.discount_amount || 0,
         unit_price: unitPrice,
         unit_vendor_cost: unitVendorCost,
       }
@@ -175,7 +186,8 @@ export default function App() {
         ? item.unit_vendor_cost
         : (item.qty > 0 ? item.vendor_cost / item.qty : 0);
 
-      const subtotal = Math.round(unitPrice * numericQty);
+      const discountNum = item.discount_amount || 0;
+      const subtotal = Math.max(0, Math.round(unitPrice * numericQty - discountNum));
       const vendor_cost = Math.round(unitVendorCost * numericQty);
 
       updated[index] = {
@@ -186,6 +198,63 @@ export default function App() {
         vendor_cost,
         unit_vendor_cost: unitVendorCost,
         unit_price: unitPrice,
+      };
+
+      return updated;
+    });
+  };
+
+  const handleUpdateCartDiscount = (index, rawDiscount) => {
+    setCartItems((prevItems) => {
+      const updated = [...prevItems];
+      const item = updated[index];
+      if (!item) return prevItems;
+
+      if (item.is_discountable === 0 || item.is_discountable === false) {
+        return prevItems;
+      }
+
+      let discountNum = Number(rawDiscount) || 0;
+      if (item.max_discount_percent > 0) {
+        const maxNominalDiscount = ((item.unit_price || item.price) * (item.qty || 1) * item.max_discount_percent) / 100;
+        if (discountNum > maxNominalDiscount) {
+          discountNum = maxNominalDiscount;
+        }
+      }
+
+      const grossSubtotal = (item.unit_price || item.price) * (item.qty || 1);
+      const subtotal = Math.max(0, Math.round(grossSubtotal - discountNum));
+
+      updated[index] = {
+        ...item,
+        discount_amount: discountNum,
+        subtotal
+      };
+
+      return updated;
+    });
+  };
+
+  const handleUpdateCartUnit = (index, selectedUnit) => {
+    setCartItems((prevItems) => {
+      const updated = [...prevItems];
+      const item = updated[index];
+      if (!item) return prevItems;
+
+      const isPurchaseUnit = item.purchase_unit && selectedUnit.toLowerCase() === item.purchase_unit.toLowerCase();
+      const unitMultiplier = isPurchaseUnit ? (Number(item.conversion_ratio) || 500) : 1;
+      const basePrice = item.price || 0;
+      const unitPrice = isPurchaseUnit ? basePrice * unitMultiplier : basePrice;
+
+      const grossSubtotal = unitPrice * (item.qty || 1);
+      const discountNum = item.discount_amount || 0;
+      const subtotal = Math.max(0, Math.round(grossSubtotal - discountNum));
+
+      updated[index] = {
+        ...item,
+        unit: selectedUnit,
+        unit_price: unitPrice,
+        subtotal
       };
 
       return updated;
@@ -280,6 +349,8 @@ export default function App() {
         <Cart
           cartItems={cartItems}
           onUpdateQty={handleUpdateCartQty}
+          onUpdateDiscount={handleUpdateCartDiscount}
+          onUpdateUnit={handleUpdateCartUnit}
           onRemoveItem={handleRemoveCartItem}
           onClearCart={handleClearCart}
           onTransactionSuccess={handleTransactionSuccess}

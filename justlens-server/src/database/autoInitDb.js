@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { exec, query, run } = require('../config/database');
+const { exec, query, run, get } = require('../config/database');
 
 /**
  * Auto Initialize Database (Migration + Seed)
@@ -82,15 +82,21 @@ const autoInitDb = async () => {
         name TEXT NOT NULL,
         category TEXT NOT NULL,
         unit TEXT DEFAULT 'Pcs',
+        base_unit TEXT DEFAULT 'lembar',
+        purchase_unit TEXT DEFAULT 'rim',
+        conversion_ratio REAL DEFAULT 500,
+        tiered_pricing TEXT DEFAULT NULL,
+        is_discountable INTEGER DEFAULT 1,
+        max_discount_percent REAL DEFAULT 0,
         is_outsource INTEGER DEFAULT 0,
         is_metered INTEGER DEFAULT 0,
         base_price REAL DEFAULT 0,
         sell_price REAL DEFAULT 0,
         stock REAL DEFAULT 0,
-        supplier_id INTEGER,
+        supplier_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE RESTRICT
       );
 
       CREATE TABLE IF NOT EXISTS finishing_options (
@@ -121,7 +127,9 @@ const autoInitDb = async () => {
         width REAL DEFAULT 0,
         length REAL DEFAULT 0,
         qty INTEGER DEFAULT 1,
+        unit TEXT DEFAULT 'Pcs',
         price REAL DEFAULT 0,
+        discount_amount REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
         vendor_cost REAL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -148,11 +156,48 @@ const autoInitDb = async () => {
     `;
 
     await exec(schemaSql);
+
+    // Auto seed a default supplier if none exists so mandatory FK checks pass for existing data
+    const supplierCount = await query('SELECT COUNT(*) as count FROM suppliers');
+    if (supplierCount[0].count === 0) {
+      await run('INSERT INTO suppliers (name, phone, address) VALUES (?, ?, ?)', [
+        'Supplier Utama Toko',
+        '08123456789',
+        'Jl. Utama Toko No. 1'
+      ]);
+    }
+    const defaultSupplier = await get('SELECT id FROM suppliers LIMIT 1');
+    const defaultSupplierId = defaultSupplier ? defaultSupplier.id : 1;
+
     try {
       await exec("ALTER TABLE products ADD COLUMN unit TEXT DEFAULT 'Pcs'");
     } catch (e) {}
     try {
-      await exec("ALTER TABLE products ADD COLUMN supplier_id INTEGER REFERENCES suppliers(id) ON DELETE SET NULL");
+      await exec(`ALTER TABLE products ADD COLUMN supplier_id INTEGER DEFAULT ${defaultSupplierId} REFERENCES suppliers(id) ON DELETE RESTRICT`);
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN base_unit TEXT DEFAULT 'lembar'");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN purchase_unit TEXT DEFAULT 'rim'");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN conversion_ratio REAL DEFAULT 500");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN tiered_pricing TEXT DEFAULT NULL");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN is_discountable INTEGER DEFAULT 1");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE products ADD COLUMN max_discount_percent REAL DEFAULT 0");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE transaction_items ADD COLUMN unit TEXT DEFAULT 'Pcs'");
+    } catch (e) {}
+    try {
+      await exec("ALTER TABLE transaction_items ADD COLUMN discount_amount REAL DEFAULT 0");
     } catch (e) {}
     try {
       await exec("ALTER TABLE users ADD COLUMN is_active INTEGER DEFAULT 1");

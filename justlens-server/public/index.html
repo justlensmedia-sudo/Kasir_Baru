@@ -800,15 +800,30 @@
           </div>
 
           <div class="form-group">
-            <label for="barangSupplier"><i class="fa-solid fa-truck-field"></i> Supplier Utama (Pemasok)</label>
-            <select id="barangSupplier" class="form-control">
-              <option value="">-- Tanpa Supplier / Umum --</option>
+            <label for="barangSupplier"><i class="fa-solid fa-truck-field"></i> Supplier Utama (Pemasok) <span class="text-danger">*</span></label>
+            <select id="barangSupplier" class="form-control" required>
+              <option value="">-- Pilih Supplier Wajib --</option>
             </select>
           </div>
 
           <div class="form-row">
             <div class="form-group col-4">
-              <label for="barangStock">Stok Awal <span class="text-danger">*</span></label>
+              <label for="barangBaseUnit">Satuan Dasar (Jual Kasir)</label>
+              <input type="text" id="barangBaseUnit" class="form-control" placeholder="lembar / pcs" value="lembar">
+            </div>
+            <div class="form-group col-4">
+              <label for="barangPurchaseUnit">Satuan Beli (Supplier)</label>
+              <input type="text" id="barangPurchaseUnit" class="form-control" placeholder="rim / box" value="rim">
+            </div>
+            <div class="form-group col-4">
+              <label for="barangConversionRatio">Rasio Konversi (Beli -> Dasar)</label>
+              <input type="number" id="barangConversionRatio" class="form-control" min="1" value="500">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-4">
+              <label for="barangStock">Stok Awal (Satuan Dasar) <span class="text-danger">*</span></label>
               <input type="number" id="barangStock" class="form-control" min="0" value="10" required>
             </div>
             <div class="form-group col-4">
@@ -818,6 +833,19 @@
             <div class="form-group col-4">
               <label for="barangSellPrice">Harga Jual (Rp) <span class="text-danger">*</span></label>
               <input type="number" id="barangSellPrice" class="form-control" min="0" value="0" placeholder="55000" required>
+            </div>
+          </div>
+
+          <div class="form-row" style="align-items: center; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+            <div class="form-group col-6" style="margin-bottom: 0;">
+              <label style="display: flex; items-center: center; gap: 8px; cursor: pointer; font-weight: 600;">
+                <input type="checkbox" id="barangIsDiscountable" checked style="width: 18px; height: 18px; accent-color: var(--primary);">
+                <span>Dapat Didiskon Kasir (Is Discountable)</span>
+              </label>
+            </div>
+            <div class="form-group col-6" style="margin-bottom: 0;">
+              <label for="barangMaxDiscountPercent">Max Diskon Persen (%)</label>
+              <input type="number" id="barangMaxDiscountPercent" class="form-control" min="0" max="100" value="0" placeholder="0 (Tanpa Batas)">
             </div>
           </div>
         </div>

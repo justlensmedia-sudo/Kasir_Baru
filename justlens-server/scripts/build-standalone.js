@@ -92,23 +92,28 @@ if (fs.existsSync(installerSrc)) {
   console.log('✓ Copied installer.iss to dist/');
 }
 
-// 5. Create Justlens-Server-Setup-v1.1.exe installer executable in dist/
+// 5. Create Justlens-Server-Setup-v1.2.exe installer executable in dist/ & root dist/
 const compiledExe = path.join(distDir, 'justlens-server.exe');
-const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.1.exe');
+const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.2.exe');
+const rootDistDir = path.resolve(rootDir, '..', 'dist');
+if (!fs.existsSync(rootDistDir)) {
+  fs.mkdirSync(rootDistDir, { recursive: true });
+}
+
 if (fs.existsSync(compiledExe)) {
   try {
-    if (fs.existsSync(targetSetupExe)) {
-      try { fs.unlinkSync(targetSetupExe); } catch (e) {}
-    }
     fs.copyFileSync(compiledExe, targetSetupExe);
-    console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.1.exe');
+    fs.copyFileSync(compiledExe, path.join(rootDistDir, 'justlens-server.exe'));
+    fs.copyFileSync(compiledExe, path.join(rootDistDir, 'Justlens-Server-Setup-v1.2.exe'));
+    console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.2.exe');
+    console.log('✓ Synced executables to root dist/ directory.');
   } catch (err) {
-    console.warn('⚠️ Gagal membuat duplikat Justlens-Server-Setup-v1.1.exe, executable utama dist/justlens-server.exe tetap tersedia:', err.message);
+    console.warn('⚠️ Gagal menyalin installer executable:', err.message);
   }
 }
 
 console.log('==================================================');
 console.log('🎉 Standalone Server Build Ready in dist/ directory!');
 console.log('📂 Executable File : dist/justlens-server.exe');
-console.log('📦 Installer Setup : dist/Justlens-Server-Setup-v1.1.exe');
+console.log('📦 Installer Setup : dist/Justlens-Server-Setup-v1.2.exe');
 console.log('==================================================');

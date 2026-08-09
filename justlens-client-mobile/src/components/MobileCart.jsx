@@ -5,11 +5,12 @@ import { createTransaction } from '../services/api';
 export default function MobileCart({
   cartItems,
   onUpdateQty,
+  onUpdateDiscount,
   onRemoveItem,
   onClearCart,
   currentUser
 }) {
-  const [customerName, setCustomerName] = useState('Pelanggan Umum');
+  const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [paymentMethod, setPaymentMethod] = useState('Tunai');
   const [paymentStatus, setPaymentStatus] = useState('Lunas');
   const [dpAmount, setDpAmount] = useState('');
@@ -32,7 +33,7 @@ export default function MobileCart({
 
     try {
       const payload = {
-        customer_name: customerName || 'Pelanggan Umum',
+        customer_name: customerName.trim() || 'Walk-in Customer',
         customer_phone: '',
         payment_method: paymentMethod,
         payment_status: paymentStatus,
@@ -49,7 +50,9 @@ export default function MobileCart({
           width_cm: item.width_cm || 0,
           height_cm: item.height_cm || 0,
           qty: item.qty,
+          unit: item.unit || 'Pcs',
           unit_price: item.price,
+          discount_amount: item.discount_amount || 0,
           finishing_id: item.finishing_id || null,
           finishing_name: item.finishing_name || '',
           finishing_cost: item.finishing_cost || 0,
@@ -59,6 +62,7 @@ export default function MobileCart({
 
       const result = await createTransaction(payload);
       setSuccessMsg(`Transaksi Berhasil! No: ${result.data.transaction_no}`);
+      setCustomerName('Walk-in Customer');
       onClearCart();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
@@ -107,9 +111,26 @@ export default function MobileCart({
             <div key={idx} className="py-2.5 flex items-center justify-between text-xs gap-2">
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-white truncate">{item.name}</p>
-                <p className="text-[11px] text-slate-400">
-                  Rp {Number(item.price).toLocaleString('id-ID')}
-                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-[10px] text-slate-400">
+                    Rp {Number(item.price).toLocaleString('id-ID')}
+                  </span>
+                  {/* Controlled Discount Field */}
+                  {item.is_discountable === 0 || item.is_discountable === false ? (
+                    <span className="text-[9px] text-slate-500 bg-slate-950 px-1 rounded border border-slate-800">
+                      Diskon Off
+                    </span>
+                  ) : (
+                    <input
+                      type="number"
+                      min="0"
+                      value={item.discount_amount || ''}
+                      onChange={(e) => onUpdateDiscount && onUpdateDiscount(idx, e.target.value)}
+                      placeholder="Disc Rp"
+                      className="w-14 bg-slate-950 border border-slate-700 text-emerald-400 text-[10px] font-mono font-bold rounded px-1 text-center"
+                    />
+                  )}
+                </div>
               </div>
 
               {/* Qty Controls */}
