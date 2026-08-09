@@ -12,7 +12,9 @@
     "clear-dummy": "node src/database/clear-dummy.js",
     "test": "node test-api.js",
     "backup": "node scripts/export-full-backup.js",
-    "build:exe": "node scripts/build-standalone.js"
+    "build:exe": "node scripts/build-standalone.js",
+    "service:install": "node install-service.js",
+    "service:uninstall": "node uninstall-service.js"
   },
   "pkg": {
     "scripts": [
@@ -40,6 +42,7 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
+    "node-windows": "^1.0.0-beta.8",
     "sqlite3": "^5.1.7",
     "xlsx": "^0.18.5"
   },

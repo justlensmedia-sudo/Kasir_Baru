@@ -8,9 +8,10 @@ dotenv.config();
 
 // Determine database file path (pkg executable compatible)
 const isPkg = typeof process.pkg !== 'undefined';
+const defaultDbName = 'database.sqlite';
 const defaultDbPath = isPkg 
-  ? path.join(path.dirname(process.execPath), 'justlens.sqlite') 
-  : path.resolve('./src/database/justlens.sqlite');
+  ? path.join(path.dirname(process.execPath), defaultDbName) 
+  : path.resolve('./src/database', defaultDbName);
 
 const dbPath = path.resolve(process.env.DB_PATH || defaultDbPath);
 
@@ -18,6 +19,21 @@ const dbPath = path.resolve(process.env.DB_PATH || defaultDbPath);
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
+}
+
+// Fallback: If target database.sqlite does not exist, copy from justlens.sqlite if available
+if (!fs.existsSync(dbPath)) {
+  const legacyDb = isPkg
+    ? path.join(path.dirname(process.execPath), 'justlens.sqlite')
+    : path.resolve('./src/database/justlens.sqlite');
+  if (fs.existsSync(legacyDb)) {
+    try {
+      fs.copyFileSync(legacyDb, dbPath);
+      console.log(`✓ Copied existing database from ${legacyDb} to ${dbPath}`);
+    } catch (e) {
+      console.warn('⚠️ Gagal menyalin legacy database:', e.message);
+    }
+  }
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {

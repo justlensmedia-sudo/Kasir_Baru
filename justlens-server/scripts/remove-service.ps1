@@ -14,18 +14,16 @@ if (-not $isAdmin) {
     Exit 1
 }
 
-$serviceName = "JustlensServer"
-
 # 2. Stop and Delete Windows Service
-Write-Host "`n⚙️ Step 1: Menghentikan & Menghapus Windows Service '$serviceName'..." -ForegroundColor Yellow
-$existingService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+Write-Host "`n⚙️ Step 1: Menghentikan & Menghapus Windows Service 'JustlensServerService'..." -ForegroundColor Yellow
 
-if ($existingService) {
-    Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-    sc.exe delete $serviceName | Out-Null
-    Write-Host "✓ Windows Service '$serviceName' berhasil dihapus." -ForegroundColor Green
-} else {
-    Write-Host "ℹ️ Windows Service '$serviceName' tidak ditemukan." -ForegroundColor Cyan
+foreach ($sName in @("JustlensServerService", "JustlensServer")) {
+    $existingService = Get-Service -Name $sName -ErrorAction SilentlyContinue
+    if ($existingService) {
+        Stop-Service -Name $sName -Force -ErrorAction SilentlyContinue
+        sc.exe delete $sName | Out-Null
+        Write-Host "✓ Windows Service '$sName' berhasil dihapus." -ForegroundColor Green
+    }
 }
 
 # 3. Remove Windows Firewall Rule

@@ -74,8 +74,16 @@ if (fs.existsSync(sqliteNodePath)) {
   console.warn('⚠️ Warning: node_sqlite3.node not found in node_modules/sqlite3/build/Release');
 }
 
-// 3. Copy PowerShell setup scripts to dist/
+// 3. Copy Windows Service Setup Scripts to dist/
 console.log('🛠️ Step 3: Copying Windows Service & Firewall Setup Scripts...');
+['install-service.js', 'uninstall-service.js'].forEach(file => {
+  const src = path.join(rootDir, file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(distDir, file));
+    console.log(`✓ Copied ${file} to dist/`);
+  }
+});
+
 const scriptsDir = path.join(rootDir, 'scripts');
 ['setup-service.ps1', 'remove-service.ps1'].forEach(file => {
   const src = path.join(scriptsDir, file);

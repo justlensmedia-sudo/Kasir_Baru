@@ -37,16 +37,20 @@ try {
 }
 
 # 3. Register & Start Windows Service
-Write-Host "`n⚙️ Step 2: Memasang Windows Service 'JustlensServer'..." -ForegroundColor Yellow
+Write-Host "`n⚙️ Step 2: Memasang Windows Service 'JustlensServerService'..." -ForegroundColor Yellow
 
-$serviceName = "JustlensServer"
+$serviceName = "JustlensServerService"
 $existingService = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 
-if ($existingService) {
-    Write-Host "ℹ️ Windows Service '$serviceName' sudah ada. Menghentikan service lama..." -ForegroundColor Cyan
-    Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-    sc.exe delete $serviceName | Out-Null
-    Start-Sleep -Seconds 2
+# Stop & remove old service names if exists
+foreach ($legacyName in @("JustlensServerService", "JustlensServer")) {
+    $legacy = Get-Service -Name $legacyName -ErrorAction SilentlyContinue
+    if ($legacy) {
+        Write-Host "ℹ️ Menghentikan & membersihkan service lama '$legacyName'..." -ForegroundColor Cyan
+        Stop-Service -Name $legacyName -Force -ErrorAction SilentlyContinue
+        sc.exe delete $legacyName | Out-Null
+        Start-Sleep -Seconds 2
+    }
 }
 
 $nssmPath = Join-Path $scriptDir "nssm.exe"
@@ -55,21 +59,25 @@ if (Test-Path $nssmPath) {
     Write-Host "ℹ️ Menggunakan NSSM (Non-Sucking Service Manager)..." -ForegroundColor Cyan
     & $nssmPath install $serviceName "$exePath" | Out-Null
     & $nssmPath set $serviceName AppDirectory "$scriptDir" | Out-Null
-    & $nssmPath set $serviceName DisplayName "Justlens Server API & Backoffice" | Out-Null
-    & $nssmPath set $serviceName Description "Backend API & Admin UI Justlens Server (Port 5000)" | Out-Null
+    & $nssmPath set $serviceName DisplayName "Justlens POS Server Service" | Out-Null
+    & $nssmPath set $serviceName Description "Backend Service REST API & Database untuk Justlens System POS." | Out-Null
     & $nssmPath set $serviceName Start SERVICE_AUTO_START | Out-Null
+    & $nssmPath set $serviceName AppRestartDelay 5000 | Out-Null
     & $nssmPath start $serviceName | Out-Null
 } else {
-    Write-Host "ℹ️ Menggunakan PowerShell New-Service bawaan Windows..." -ForegroundColor Cyan
+    Write-Host "ℹ️ Menggunakan Windows Service Control Manager (sc.exe)..." -ForegroundColor Cyan
     New-Service -Name $serviceName `
                 -BinaryPathName "`"$exePath`"" `
-                -DisplayName "Justlens Server API & Backoffice" `
-                -Description "Backend API & Admin UI Justlens Server (Port 5000)" `
+                -DisplayName "Justlens POS Server Service" `
+                -Description "Backend Service REST API & Database untuk Justlens System POS." `
                 -StartupType Automatic | Out-Null
+    
+    # Configure Auto Recovery Options (Restart after 5 seconds on failure)
+    sc.exe failure $serviceName reset= 86400 actions= restart/5000/restart/5000/restart/5000 | Out-Null
     Start-Service -Name $serviceName | Out-Null
 }
 
-Write-Host "✓ Windows Service '$serviceName' berhasil dipasang dan diaktifkan!" -ForegroundColor Green
+Write-Host "✓ Windows Service '$serviceName' berhasil dipasang, dikonfigurasi auto-recovery 5 detik, dan diaktifkan!" -ForegroundColor Green
 
 Write-Host "`n==================================================" -ForegroundColor Cyan
 Write-Host "🎉 Setup Selesai!" -ForegroundColor Green
