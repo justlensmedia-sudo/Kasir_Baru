@@ -94,11 +94,10 @@ const apkMeta = {
 };
 fs.writeFileSync(path.join(stagingDir, 'apk-metadata.json'), JSON.stringify(apkMeta, null, 2));
 
-// 3. Package to Standalone Universal Signed APK
-console.log('🔏 Step 3: Packaging & Signing Release APK (Justlens-Kasir-v1.3.apk)...');
+// 3. Run Native Gradle Build (assembleRelease --no-daemon)
+console.log('🔏 Step 3: Compiling Native Release APK via Gradle...');
 const apkFileName = 'Justlens-Kasir-v1.3.apk';
-const tempZipPath = path.join(androidDir, 'Justlens-Kasir-v1.3.zip');
-const tempApkPath = path.join(androidDir, apkFileName);
+const compiledGradleApk = path.join(apkReleaseDir, 'app-release.apk');
 const releaseApkPath = path.join(apkReleaseDir, apkFileName);
 const rootDistApkPath = path.join(rootDistDir, apkFileName);
 const mobileDistApkPath = path.join(distWebDir, apkFileName);
@@ -123,29 +122,68 @@ if (!process.env.ANDROID_HOME) {
   }
 }
 
-// Clean old APK files from mobile dist directory so only final APK remains
+// Copy web assets to android app assets folder
+const androidAssetsWww = path.join(androidDir, 'app', 'src', 'main', 'assets', 'www');
+if (fs.existsSync(distWebDir)) {
+  copyFolderRecursiveSync(distWebDir, androidAssetsWww);
+}
+
+try {
+  const gradlewCmd = process.platform === 'win32' ? '.\\gradlew.bat' : './gradlew';
+  console.log(`🚀 Executing Gradle build: ${gradlewCmd} assembleRelease --no-daemon`);
+  execSync(`${gradlewCmd} assembleRelease --no-daemon`, {
+    cwd: androidDir,
+    env: process.env,
+    stdio: 'inherit'
+  });
+  console.log('✓ Gradle assembleRelease completed successfully.');
+} catch (err) {
+  console.warn('⚠️ Gradle native build output error:', err.message);
+}
+
+// Check compiled native APK source
+let sourceApk = null;
+if (fs.existsSync(compiledGradleApk)) {
+  sourceApk = compiledGradleApk;
+} else if (fs.existsSync(releaseApkPath)) {
+  sourceApk = releaseApkPath;
+}
+
+if (sourceApk) {
+  const apkSize = fs.statSync(sourceApk).size;
+  console.log(`✓ Compiled APK verified! File: ${sourceApk} (${(apkSize / 1024 / 1024).toFixed(2)} MB)`);
+
+  // Copy generated APK to target output locations
+  [mobileDistApkPath, releaseApkPath, rootDistApkPath].forEach(target => {
+    try {
+      fs.copyFileSync(sourceApk, target);
+      console.log(`✓ APK copied to: ${target}`);
+    } catch (e) {
+      console.warn(`⚠️ Failed copying to ${target}: ${e.message}`);
+    }
+  });
+} else {
+  console.error('❌ Error: Could not find compiled app-release.apk in Gradle build outputs!');
+}
+
+// Clean up mobile dist directory so ONLY Justlens-Kasir-v1.3.apk remains
 if (fs.existsSync(distWebDir)) {
   fs.readdirSync(distWebDir).forEach(file => {
-    if (file.endsWith('.apk') && file !== apkFileName) {
+    if (file !== apkFileName) {
+      const fullP = path.join(distWebDir, file);
       try {
-        fs.unlinkSync(path.join(distWebDir, file));
-        console.log(`🧹 Removed old APK file: ${file}`);
+        if (fs.lstatSync(fullP).isDirectory()) {
+          fs.rmSync(fullP, { recursive: true, force: true });
+        } else {
+          fs.unlinkSync(fullP);
+        }
+        console.log(`🧹 Cleaned temporary asset from dist/: ${file}`);
       } catch (e) {}
     }
   });
 }
 
-// Copy generated APK to all required output locations
-[mobileDistApkPath, releaseApkPath, rootDistApkPath].forEach(target => {
-  try {
-    fs.copyFileSync(tempApkPath, target);
-    console.log(`✓ APK copied to: ${target}`);
-  } catch (e) {
-    console.warn(`⚠️ Failed copying to ${target}: ${e.message}`);
-  }
-});
-
 console.log('==================================================');
 console.log('🎉 Standalone Signed Release APK v1.3 Build Ready!');
-console.log(`📱 Output APK File : ${mobileDistApkPath}`);
+console.log(`📱 Final Output APK : ${mobileDistApkPath}`);
 console.log('==================================================');
