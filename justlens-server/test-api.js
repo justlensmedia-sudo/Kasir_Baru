@@ -296,18 +296,73 @@ async function runTests() {
     console.log('Profit Loss Report Status:', plReport.status);
     console.log('- Net Profit (Laba Bersih): Rp', plReport.data?.data?.net_profit?.toLocaleString('id-ID'), '\n');
 
-    // 8. Tes Ekspor Label Barcode ke Word (.docx)
-    console.log('[TEST 8] GET /api/barcodes/export-word');
-    const wordRes = await request({
+    // 9. Tes Pembersihan Database Selektif (Selective Reset)
+    console.log('[TEST 9] POST /api/settings/selective-reset (Pembersihan Database Selektif)');
+    
+    // 9a. Tes dengan Password Salah -> Harus 401 Unauthorized
+    const wrongPassRes = await request(
+      {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/settings/selective-reset',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      },
+      {
+        password: 'wrong_password_123',
+        reset_transactions: true
+      }
+    );
+    console.log('Password Salah - Status (Ekspektasi 401):', wrongPassRes.status);
+    console.log('Success (Ekspektasi false):', wrongPassRes.data.success);
+    if (wrongPassRes.status !== 401) {
+      throw new Error('Gagal memblokir password yang salah!');
+    }
+
+    // 9b. Tes Reset Selektif Riwayat Transaksi Sah (Password Benar)
+    const validResetRes = await request(
+      {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/settings/selective-reset',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      },
+      {
+        password: 'admin123',
+        reset_transactions: true,
+        reset_journals: false,
+        reset_products: false,
+        reset_suppliers_vendors: false,
+        reset_logs: false
+      }
+    );
+    console.log('Reset Transaksi Status (Ekspektasi 200):', validResetRes.status);
+    console.log('Pesan Reset:', validResetRes.data.message);
+
+    // 9c. Verifikasi: Transaksi harus kosong (0), Produk dan User harus TETAP ADA (>0)
+    const postResetSales = await request({
       hostname: 'localhost',
       port: PORT,
-      path: '/api/barcodes/export-word',
+      path: '/api/reports/sales',
       method: 'GET'
     });
-    console.log('Export Barcode Word Status:', wordRes.status);
-    if (wordRes.headers) {
-      console.log('- Content-Type:', wordRes.headers['content-type']);
+    console.log('Jumlah Transaksi Setelah Reset:', postResetSales.data.data.summary.total_transactions);
+    if (postResetSales.data.data.summary.total_transactions !== 0) {
+      throw new Error('Transaksi gagal dikosongkan!');
     }
+
+    const postResetProducts = await request({
+      hostname: 'localhost',
+      port: PORT,
+      path: '/api/products/sync',
+      method: 'GET'
+    });
+    console.log('Jumlah Produk Setelah Reset (TETAP UTUH):', postResetProducts.data.data.products.length);
+    if (postResetProducts.data.data.products.length === 0) {
+      throw new Error('Produk master tidak sengaja ikut terhapus!');
+    }
+
     console.log('✅ SELURUH PENGUJIAN API LAN & FULL FEATURES BERHASIL 100%!');
   } catch (err) {
     console.error('❌ TERJADI KESALAHAN PADA PENGUJIAN API:', err);

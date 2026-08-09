@@ -1330,7 +1330,67 @@ async function triggerGitBackup() {
   }
 }
 
-// Trigger Database Reset
+// Open Selective Reset Modal
+function openSelectiveResetModal() {
+  const form = document.getElementById('formSelectiveReset');
+  if (form) form.reset();
+  openModal('modalSelectiveReset');
+}
+
+// Handle Selective Reset Form Submission
+async function handleSelectiveResetSubmit(e) {
+  if (e) e.preventDefault();
+
+  const resetTransactions = document.getElementById('resetTransactions')?.checked || false;
+  const resetJournals = document.getElementById('resetJournals')?.checked || false;
+  const resetProducts = document.getElementById('resetProducts')?.checked || false;
+  const resetSuppliersVendors = document.getElementById('resetSuppliersVendors')?.checked || false;
+  const resetLogs = document.getElementById('resetLogs')?.checked || false;
+  const password = document.getElementById('adminPasswordConfirm')?.value || '';
+
+  if (!resetTransactions && !resetJournals && !resetProducts && !resetSuppliersVendors && !resetLogs) {
+    showToast('Harap pilih setidaknya satu opsi data yang akan dibersihkan.', 'error');
+    return;
+  }
+
+  if (!password) {
+    showToast('Harap masukkan password Admin untuk konfirmasi keamanan.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmitSelectiveReset');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/settings/selective-reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password,
+        reset_transactions: resetTransactions,
+        reset_journals: resetJournals,
+        reset_products: resetProducts,
+        reset_suppliers_vendors: resetSuppliersVendors,
+        reset_logs: resetLogs
+      })
+    });
+
+    const result = await res.json();
+    if (!res.ok || !result.success) {
+      throw new Error(result.message || 'Gagal melakukan pembersihan database selektif');
+    }
+
+    showToast(result.message);
+    closeModal('modalSelectiveReset');
+    await refreshCurrentTabData();
+  } catch (err) {
+    showToast(err.message || 'Terjadi kesalahan saat mereset database', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Trigger Database Reset (Full Reset Fallback)
 async function triggerDatabaseReset() {
   const confirmFirst = confirm("PERINGATAN KELOLA DATABASE:\n\nApakah Anda yakin ingin mengosongkan SELURUH data sisa (transaksi, stok, supplier, dan vendor)?\n\nData akun Pengguna (Admin/Kasir) TETAP DIPERTAHANKAN.");
   if (!confirmFirst) return;

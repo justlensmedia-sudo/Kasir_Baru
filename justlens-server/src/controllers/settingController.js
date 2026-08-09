@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
+const bcrypt = require('bcryptjs');
 const { query, get, run } = require('../config/database');
-const { resetDatabase } = require('../database/clear-dummy');
+const { resetDatabase, selectiveResetDatabase } = require('../database/clear-dummy');
 
 const isPkg = typeof process.pkg !== 'undefined';
 
@@ -94,6 +95,87 @@ const settingController = {
       res.json({
         success: true,
         message: 'Seluruh data sisa transaksi, stok, supplier, dan vendor outsource berhasil dibersihkan! (Akun pengguna admin & kasir dipertahankan).'
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  selectiveResetDatabase: async (req, res, next) => {
+    try {
+      const {
+        password,
+        reset_transactions,
+        reset_journals,
+        reset_products,
+        reset_suppliers_vendors,
+        reset_logs
+      } = req.body;
+
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password Admin wajib diisi untuk konfirmasi keamanan reset database.'
+        });
+      }
+
+      if (!reset_transactions && !reset_journals && !reset_products && !reset_suppliers_vendors && !reset_logs) {
+        return res.status(400).json({
+          success: false,
+          message: 'Pilih setidaknya satu opsi data yang ingin dibersihkan.'
+        });
+      }
+
+      // Validate password against active admin users in database
+      const adminUsers = await query("SELECT * FROM users WHERE role = 'admin' AND is_active = 1");
+      if (!adminUsers || adminUsers.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tidak ditemukan akun Admin aktif untuk mengonfirmasi tindakan ini.'
+        });
+      }
+
+      let passwordValid = false;
+      for (const admin of adminUsers) {
+        if (await bcrypt.compare(password, admin.password_hash)) {
+          passwordValid = true;
+          break;
+        }
+      }
+
+      if (!passwordValid) {
+        return res.status(401).json({
+          success: false,
+          message: 'Password Admin salah / tidak valid! Pembersihan database dibatalkan.'
+        });
+      }
+
+      const clearedTables = await selectiveResetDatabase({
+        reset_transactions: !!reset_transactions,
+        reset_journals: !!reset_journals,
+        reset_products: !!reset_products,
+        reset_suppliers_vendors: !!reset_suppliers_vendors,
+        reset_logs: !!reset_logs
+      });
+
+      try {
+        const LogModel = require('../models/logModel');
+        await LogModel.create({
+          user_id: req.user ? req.user.id : null,
+          user_name: req.user ? req.user.name : 'Admin',
+          activity: 'Reset Database Selektif',
+          details: `Berhasil membersihkan tabel: ${clearedTables.join(', ')}.`
+        });
+      } catch (e) {
+        // Ignore if activity_logs table was cleared
+      }
+
+      return res.json({
+        success: true,
+        message: `Pembersihan database selektif berhasil! Data pada tabel (${clearedTables.join(', ')}) berhasil dibersihkan. Akun pengguna dipertahankan.`,
+        data: {
+          cleared_tables: clearedTables
+        }
       });
     } catch (error) {
       next(error);

@@ -641,22 +641,22 @@
 
         </div>
 
-        <!-- Card 3: Pembersihan Database (Reset Data Sisa) -->
+        <!-- Card 3: Pembersihan Database (Reset Data Selektif) -->
         <div class="card" style="border-left: 4px solid var(--danger);">
           <div class="card-header space-between">
             <div>
-              <h3 style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Pembersihan Database (Reset Data Sisa)</h3>
-              <p class="subtitle">Kosongkan seluruh data transaksi, stok, bahan baku, supplier, dan vendor outsource</p>
+              <h3 style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Pembersihan Database Selektif (Reset Data)</h3>
+              <p class="subtitle">Kosongkan data tertentu secara opsional dengan proteksi penuh pada akun pengguna</p>
             </div>
           </div>
           <div class="card-body">
             <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 10px; color: #991b1b; margin-bottom: 16px;">
-              <h4 style="margin-bottom: 6px; font-size: 14px;"><i class="fa-solid fa-shield-halved"></i> PERTAHANKAN AKUN USER & ROLE</h4>
-              <p style="font-size: 13px;">Tindakan ini akan menghapus <strong>seluruh data transaksi, item, produk, bahan baku, supplier, dan vendor outsource</strong> dari database server. Data akun pengguna (Admin & Kasir) beserta role/hak aksesnya <strong>TETAP DIPERTAHANKAN</strong> agar aplikasi kasir dan admin bisa langsung dipakai login di toko.</p>
+              <h4 style="margin-bottom: 6px; font-size: 14px;"><i class="fa-solid fa-shield-halved"></i> PROTEKSI KETAT AKUN USER & ROLE</h4>
+              <p style="font-size: 13px;">Anda dapat memilih data mana saja yang ingin dikosongkan (transaksi, jurnal pembukuan, stok produk, supplier/vendor, atau audit log). Data akun pengguna (tabel <code>users</code>) <strong>TERUNCI & TIDAK DAPAT DIHAPUS</strong> dalam kondisi apa pun.</p>
             </div>
 
-            <button class="btn btn-danger" onclick="triggerDatabaseReset()" id="btnResetDb">
-              <i class="fa-solid fa-trash-can"></i> Bersihkan / Reset Database Sekarang
+            <button class="btn btn-danger" onclick="openSelectiveResetModal()" id="btnOpenResetModal">
+              <i class="fa-solid fa-sliders"></i> Pembersihan Database Selektif...
             </button>
           </div>
         </div>
@@ -1163,6 +1163,77 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalUser')">Batal</button>
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Akun</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Pembersihan Database Selektif -->
+  <div class="modal-backdrop" id="modalSelectiveReset">
+    <div class="modal" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 style="color: var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i> Pembersihan Database Selektif</h3>
+        <button class="btn-close" onclick="closeModal('modalSelectiveReset')">&times;</button>
+      </div>
+      <form id="formSelectiveReset" onsubmit="handleSelectiveResetSubmit(event)">
+        <div class="modal-body">
+          <p class="subtitle mb-3" style="font-size: 13px;">Pilih kategori data yang ingin dikosongkan secara permanen dari database server:</p>
+
+          <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 10px; margin-bottom: 16px;">
+            <div style="font-weight: 700; color: #991b1b; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-list-check"></i> Checkbox Pilihan Data yang Akan Dihapus:
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #1e293b;">
+                <input type="checkbox" id="resetTransactions" style="width: 18px; height: 18px; accent-color: var(--danger);">
+                <span><strong>Kosongkan Riwayat Transaksi & SPK</strong> <small style="color:#64748b;">(transactions, transaction_items)</small></span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #1e293b;">
+                <input type="checkbox" id="resetJournals" style="width: 18px; height: 18px; accent-color: var(--danger);">
+                <span><strong>Kosongkan Jurnal & Pembukuan Keuangan</strong> <small style="color:#64748b;">(journal_entries)</small></span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #1e293b;">
+                <input type="checkbox" id="resetProducts" style="width: 18px; height: 18px; accent-color: var(--danger);">
+                <span><strong>Kosongkan Master Data Barang & Stok</strong> <small style="color:#64748b;">(products)</small></span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #1e293b;">
+                <input type="checkbox" id="resetSuppliersVendors" style="width: 18px; height: 18px; accent-color: var(--danger);">
+                <span><strong>Kosongkan Data Supplier & Vendor Outsource</strong> <small style="color:#64748b;">(suppliers, vendors)</small></span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #1e293b;">
+                <input type="checkbox" id="resetLogs" style="width: 18px; height: 18px; accent-color: var(--danger);">
+                <span><strong>Kosongkan Audit Log Aktivitas</strong> <small style="color:#64748b;">(activity_logs)</small></span>
+              </label>
+            </div>
+          </div>
+
+          <div style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: not-allowed; color: #475569; font-weight: 600;">
+              <input type="checkbox" disabled checked style="width: 18px; height: 18px;">
+              <span>
+                <i class="fa-solid fa-lock" style="color: var(--danger);"></i> Akun User (tabel <code>users</code>) &mdash; <span style="color: #059669; font-weight: 700;">TERKUNCI / TERPROTEKSI</span>
+                <small style="color: #64748b; display: block; font-weight: normal; margin-top: 2px;">(TIDAK BISA dihapus dalam kondisi apa pun untuk keamanan sistem)</small>
+              </span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="adminPasswordConfirm" style="font-weight: 700; color: #1e293b; margin-bottom: 6px; display: block;">
+              <i class="fa-solid fa-key" style="color: #eab308;"></i> Password Admin (Konfirmasi Keamanan) <span class="text-danger">*</span>
+            </label>
+            <input type="password" id="adminPasswordConfirm" class="form-control" placeholder="Masukkan password akun Admin Anda" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalSelectiveReset')">Batal</button>
+          <button type="submit" class="btn btn-danger" id="btnSubmitSelectiveReset">
+            <i class="fa-solid fa-trash-can"></i> Konfirmasi & Reset Data Selektif
+          </button>
         </div>
       </form>
     </div>
