@@ -132,6 +132,9 @@ async function apiRequest(url, method = 'GET', body = null) {
   }
 }
 
+// Alias for fetchAPI (used in Pembukuan / Ledger module)
+const fetchAPI = apiRequest;
+
 // Auto-Authentication Handler
 async function autoLogin() {
   try {

@@ -1098,7 +1098,7 @@
         <h3><i class="fa-solid fa-file-excel" style="color: #10b981;"></i> Import Barang via Excel</h3>
         <button class="btn-close" onclick="closeModal('modalImportExcel')">&times;</button>
       </div>
-      <form id="formImportExcel" onsubmit="handleExcelImportSubmit(event)">
+      <form id="formImportExcel" onsubmit="handleExcelImportSubmit(event, '/api/products/import-excel', 'btnSubmitImportExcel')">
         <div class="modal-body">
           <p class="subtitle mb-3">Unggah file spreadsheet <code>.xlsx</code> / <code>.xls</code> yang telah diisi sesuai format kolom template.</p>
           

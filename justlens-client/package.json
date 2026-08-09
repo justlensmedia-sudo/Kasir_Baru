@@ -10,7 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development VITE_DEV_SERVER_URL=http://localhost:3000 electron .\"",
-    "electron:build": "vite build && cross-env TEMP=D:\\temp TMP=D:\\temp ELECTRON_BUILDER_CACHE=D:\\electron-builder-cache ELECTRON_CACHE=D:\\electron-cache electron-builder --win && node -e \"const fs=require('fs'); if(!fs.existsSync('dist')) fs.mkdirSync('dist'); if(!fs.existsSync('../dist')) fs.mkdirSync('../dist'); if(fs.existsSync('release/Justlens-Kasir-Desktop-Setup-v1.3.exe')) { fs.copyFileSync('release/Justlens-Kasir-Desktop-Setup-v1.3.exe', 'dist/Justlens-Kasir-Desktop-Setup-v1.3.exe'); fs.copyFileSync('release/Justlens-Kasir-Desktop-Setup-v1.3.exe', '../dist/Justlens-Kasir-Desktop-Setup-v1.3.exe'); }\""
+    "electron:build": "vite build && cross-env TEMP=D:\\temp TMP=D:\\temp ELECTRON_BUILDER_CACHE=D:\\electron-builder-cache ELECTRON_CACHE=D:\\electron-cache electron-builder --win && node -e \"const fs=require('fs'), path=require('path'); if(!fs.existsSync('dist')) fs.mkdirSync('dist'); if(!fs.existsSync('../dist')) fs.mkdirSync('../dist'); const target='Justlens-Kasir-Desktop-Setup-v1.3.exe'; if(fs.existsSync(`release/${target}`)) { fs.copyFileSync(`release/${target}`, `dist/${target}`); fs.copyFileSync(`release/${target}`, `../dist/${target}`); } fs.readdirSync('dist').forEach(f => { if(f !== target) { const p = path.join('dist', f); if(fs.lstatSync(p).isDirectory()) fs.rmSync(p, {recursive:true,force:true}); else fs.unlinkSync(p); } });\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

@@ -94,7 +94,8 @@ if (fs.existsSync(installerSrc)) {
 
 // 5. Create Justlens-Server-Setup-v1.3.exe installer executable in dist/ & root dist/
 const compiledExe = path.join(distDir, 'justlens-server.exe');
-const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.3.exe');
+const targetSetupExeName = 'Justlens-Server-Setup-v1.3.exe';
+const targetSetupExe = path.join(distDir, targetSetupExeName);
 const rootDistDir = path.resolve(rootDir, '..', 'dist');
 if (!fs.existsSync(rootDistDir)) {
   fs.mkdirSync(rootDistDir, { recursive: true });
@@ -103,17 +104,30 @@ if (!fs.existsSync(rootDistDir)) {
 if (fs.existsSync(compiledExe)) {
   try {
     fs.copyFileSync(compiledExe, targetSetupExe);
-    fs.copyFileSync(compiledExe, path.join(rootDistDir, 'justlens-server.exe'));
-    fs.copyFileSync(compiledExe, path.join(rootDistDir, 'Justlens-Server-Setup-v1.3.exe'));
-    console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.3.exe');
-    console.log('✓ Synced executables to root dist/ directory.');
+    fs.copyFileSync(compiledExe, path.join(rootDistDir, targetSetupExeName));
+    console.log(`✓ Output installer executable generated: dist/${targetSetupExeName}`);
+    console.log('✓ Synced executable to root dist/ directory.');
   } catch (err) {
     console.warn('⚠️ Gagal menyalin installer executable:', err.message);
   }
 }
 
+// 6. Consolidate dist folder so ONLY the final setup executable remains in dist/
+fs.readdirSync(distDir).forEach(file => {
+  if (file !== targetSetupExeName) {
+    const fullPath = path.join(distDir, file);
+    try {
+      if (fs.lstatSync(fullPath).isDirectory()) {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(fullPath);
+      }
+      console.log(`🧹 Cleaned up temporary file from dist/: ${file}`);
+    } catch (e) {}
+  }
+});
+
 console.log('==================================================');
 console.log('🎉 Standalone Server Build Ready in dist/ directory!');
-console.log('📂 Executable File : dist/justlens-server.exe');
-console.log('📦 Installer Setup : dist/Justlens-Server-Setup-v1.2.exe');
+console.log(`📦 Installer Setup : dist/${targetSetupExeName}`);
 console.log('==================================================');

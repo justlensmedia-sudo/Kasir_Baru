@@ -156,6 +156,8 @@ async function runTests() {
     });
     console.log('Stok Mika Setelah Pembelian:', checkMat.data.data.stock, '\n');
 
+    const prodSupplierId = supplierId || 1;
+
     // Create Product & Finishing for Test 4
     const prodRes = await request(
       {
@@ -174,7 +176,8 @@ async function runTests() {
         is_metered: 1,
         base_price: 12000,
         sell_price: 25000,
-        stock: 999
+        stock: 999,
+        supplier_id: prodSupplierId
       }
     );
     const prodId = prodRes.data.data.id;
@@ -252,6 +255,46 @@ async function runTests() {
     console.log('- Outsource Vendor Cost: Rp', marginReport.data.data.summary.total_vendor_cost.toLocaleString('id-ID'));
     console.log('- Gross Margin Outsource: Rp', marginReport.data.data.summary.total_gross_margin.toLocaleString('id-ID'));
     console.log('- Outsource Margin %:', marginReport.data.data.summary.margin_percent, '%\n');
+
+    // 7. Tes Menu Pembukuan Kas (Ledger & Profit-Loss)
+    console.log('[TEST 7] GET /api/ledger/accounts & POST /api/ledger/entries');
+    const accountsRes = await request({
+      hostname: 'localhost',
+      port: PORT,
+      path: '/api/ledger/accounts',
+      method: 'GET'
+    });
+    console.log('Accounts Status:', accountsRes.status, 'Total Accounts:', accountsRes.data?.data?.length);
+    const firstAccount = accountsRes.data?.data?.[0]?.id || 1;
+
+    const entryRes = await request(
+      {
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/ledger/entries',
+        method: 'POST',
+        headers: authHeaders
+      },
+      {
+        account_id: firstAccount,
+        type: 'Kas Keluar',
+        amount: 25000,
+        payment_method: 'Tunai',
+        category: 'Operasional',
+        description: 'Biaya Listrik Toko Test',
+        reference_no: 'REF-PLN-01'
+      }
+    );
+    console.log('Journal Entry Status:', entryRes.status, 'Entry:', entryRes.data?.data?.entry_no);
+
+    const plReport = await request({
+      hostname: 'localhost',
+      port: PORT,
+      path: '/api/ledger/reports/profit-loss',
+      method: 'GET'
+    });
+    console.log('Profit Loss Report Status:', plReport.status);
+    console.log('- Net Profit (Laba Bersih): Rp', plReport.data?.data?.net_profit?.toLocaleString('id-ID'), '\n');
 
     // 8. Tes Ekspor Label Barcode ke Word (.docx)
     console.log('[TEST 8] GET /api/barcodes/export-word');
