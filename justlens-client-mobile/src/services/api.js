@@ -30,7 +30,11 @@ export function setServerUrl(url) {
 export async function checkServerHealth() {
   try {
     const baseUrl = getServerUrl();
-    const res = await fetch(`${baseUrl}/health`, { method: 'GET' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    const res = await fetch(`${baseUrl}/health`, { method: 'GET', signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
     return { success: res.ok && data.status === 'OK', data };
   } catch (err) {
@@ -40,12 +44,21 @@ export async function checkServerHealth() {
 
 export async function syncMasterData() {
   const baseUrl = getServerUrl();
-  const res = await fetch(`${baseUrl}/products/sync`, { method: 'GET' });
-  const data = await res.json();
-  if (!res.ok || !data.success) {
-    throw new Error(data.message || 'Gagal sinkronisasi data dari server');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const res = await fetch(`${baseUrl}/products/sync`, { method: 'GET', signal: controller.signal });
+    clearTimeout(timeoutId);
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Gagal sinkronisasi data dari server');
+    }
+    return data.data;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-  return data.data;
 }
 
 export async function createTransaction(payload) {

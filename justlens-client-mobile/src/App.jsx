@@ -35,14 +35,25 @@ export default function App() {
     setIsSyncing(true);
     setSyncError('');
 
-    const health = await checkServerHealth();
-    setIsConnected(health.success);
-
     try {
+      const health = await checkServerHealth();
+      setIsConnected(health.success);
+
+      if (!health.success) {
+        setSyncError('Server LAN tidak terhubung. Silakan periksa IP Server.');
+        setIsServerModalOpen(true);
+        return;
+      }
+
       const data = await syncMasterData();
-      if (data.products) setProducts(data.products);
+      if (data && data.products) {
+        setProducts(data.products);
+      }
     } catch (err) {
-      setSyncError(err.message || 'Gagal tersambung ke Server.');
+      console.warn('API Sync caught exception:', err);
+      setIsConnected(false);
+      setSyncError(err.message || 'Gagal tersambung ke Server LAN.');
+      setIsServerModalOpen(true);
     } finally {
       setIsSyncing(false);
     }
