@@ -1,7 +1,21 @@
-const DEFAULT_SERVER_URL = 'http://192.168.1.100:5000/api';
+const DEFAULT_SERVER_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.100:5000/api';
 
 export function getServerUrl() {
-  return localStorage.getItem('justlens_mobile_server_url') || DEFAULT_SERVER_URL;
+  const isTestEnv = import.meta.env.MODE === 'test' ||
+                    import.meta.env.VITE_API_URL?.includes('5001') ||
+                    (typeof window !== 'undefined' && window.location && window.location.port === '5001');
+
+  const stored = localStorage.getItem('justlens_mobile_server_url');
+
+  if (isTestEnv) {
+    const testUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    if (!stored || stored.includes(':5000')) {
+      localStorage.setItem('justlens_mobile_server_url', testUrl);
+      return testUrl;
+    }
+  }
+
+  return stored || DEFAULT_SERVER_URL;
 }
 
 export function setServerUrl(url) {
