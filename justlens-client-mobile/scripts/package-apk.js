@@ -103,47 +103,36 @@ const releaseApkPath = path.join(apkReleaseDir, apkFileName);
 const rootDistApkPath = path.join(rootDistDir, apkFileName);
 const mobileDistApkPath = path.join(distWebDir, apkFileName);
 
-// Try building via Gradle wrapper if gradlew / android CLI is available
-let gradleSuccess = false;
-try {
-  console.log('⚙️ Checking Gradle Wrapper for native APK build...');
-  if (fs.existsSync(path.join(androidDir, 'gradlew.bat'))) {
-    execSync('gradlew.bat assembleRelease', { cwd: androidDir, stdio: 'inherit' });
-    const gradleApk = path.join(apkReleaseDir, 'app-release.apk');
-    const gradleUnsignedApk = path.join(apkReleaseDir, 'app-release-unsigned.apk');
-    if (fs.existsSync(gradleApk)) {
-      fs.copyFileSync(gradleApk, tempApkPath);
-      gradleSuccess = true;
-      console.log('✓ Gradle compiled native APK successfully!');
-    } else if (fs.existsSync(gradleUnsignedApk)) {
-      fs.copyFileSync(gradleUnsignedApk, tempApkPath);
-      gradleSuccess = true;
-      console.log('✓ Gradle compiled release APK successfully!');
+// Ensure JDK 17 and Android SDK paths for Gradle execution
+if (!process.env.JAVA_HOME || process.env.JAVA_HOME.includes('1.8')) {
+  const possibleJdks = ['C:\\Users\\jonat\\.jdks\\jbr-17.0.14', 'C:\\Program Files\\Android\\Android Studio\\jbr'];
+  for (const jdk of possibleJdks) {
+    if (fs.existsSync(jdk)) {
+      process.env.JAVA_HOME = jdk;
+      break;
     }
   }
-} catch (e) {
-  console.log('ℹ️ Gradle wrapper build unavailable/skipped, building standalone universal APK archive...');
 }
-
-if (!gradleSuccess) {
-  // Compress staging directory into ZIP and rename to APK using PowerShell Compress-Archive or tar
-  try {
-    if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
-    const psCmd = `powershell -Command "Compress-Archive -Path '${stagingDir}\\*' -DestinationPath '${tempZipPath}' -CompressionLevel Optimal -Force"`;
-    execSync(psCmd, { stdio: 'inherit' });
-    fs.copyFileSync(tempZipPath, tempApkPath);
-    if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
-    console.log(`✓ Standalone Universal Signed Release APK packaged successfully: ${tempApkPath}`);
-  } catch (err) {
-    console.warn('⚠️ Powershell compress failed, using fallback tar archive:', err.message);
-    const tarCmd = `tar -cf "${tempApkPath}" -C "${stagingDir}" .`;
-    execSync(tarCmd, { stdio: 'inherit' });
+if (!process.env.ANDROID_HOME) {
+  const possibleSdks = ['C:\\Users\\jonat\\AppData\\Local\\Android\\Sdk'];
+  for (const sdk of possibleSdks) {
+    if (fs.existsSync(sdk)) {
+      process.env.ANDROID_HOME = sdk;
+      break;
+    }
   }
 }
 
-// Clean staging directory
-if (fs.existsSync(stagingDir)) {
-  fs.rmSync(stagingDir, { recursive: true, force: true });
+// Clean old APK files from mobile dist directory so only final APK remains
+if (fs.existsSync(distWebDir)) {
+  fs.readdirSync(distWebDir).forEach(file => {
+    if (file.endsWith('.apk') && file !== apkFileName) {
+      try {
+        fs.unlinkSync(path.join(distWebDir, file));
+        console.log(`🧹 Removed old APK file: ${file}`);
+      } catch (e) {}
+    }
+  });
 }
 
 // Copy generated APK to all required output locations

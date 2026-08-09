@@ -4,3 +4,8 @@ dist
 dist-ssr
 *.local
 .vite
+.gradle
+android/.gradle
+android/apk_staging
+android/app/build
+
