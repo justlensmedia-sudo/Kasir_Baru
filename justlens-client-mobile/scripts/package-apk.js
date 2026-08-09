@@ -111,7 +111,8 @@ try {
 }
 
 // Copy generated APK to output locations
-[releaseApkPath, rootDistApkPath].forEach(target => {
+const mobileDistApkPath = path.join(distWebDir, apkFileName);
+[mobileDistApkPath, releaseApkPath, rootDistApkPath].forEach(target => {
   try {
     fs.copyFileSync(tempApkPath, target);
     console.log(`✓ APK copied to: ${target}`);
