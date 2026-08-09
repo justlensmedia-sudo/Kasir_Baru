@@ -165,14 +165,24 @@ const restoreFullBackup = async () => {
   console.log(`  - ✂️ Total Variasi Finishing: ${finCount[0].c}`);
   console.log('==================================================');
 
-  // Sync DB copies for alternate DB_PATH names (database.sqlite, justlens_prod.sqlite)
+  // Sync DB copies for alternate DB_PATH names (database.sqlite, dist/justlens.sqlite, justlens_prod.sqlite)
   const srcDb = path.join(__dirname, '../src/database/justlens.sqlite');
   if (fs.existsSync(srcDb)) {
-    ['database.sqlite', 'justlens_prod.sqlite'].forEach(dbName => {
+    const syncTargets = [
+      path.join(__dirname, '../src/database/database.sqlite'),
+      path.join(__dirname, '../src/database/justlens_prod.sqlite'),
+      path.join(__dirname, '../database.sqlite'),
+      path.join(__dirname, '../dist/justlens.sqlite')
+    ];
+    syncTargets.forEach(targetPath => {
       try {
-        fs.copyFileSync(srcDb, path.join(__dirname, '../src/database', dbName));
-        console.log(`✓ Synchronized DB backup copy: src/database/${dbName}`);
-      } catch (e) {}
+        const targetDir = path.dirname(targetPath);
+        if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+        fs.copyFileSync(srcDb, targetPath);
+        console.log(`✓ Synchronized DB backup copy: ${path.relative(path.join(__dirname, '..'), targetPath)}`);
+      } catch (e) {
+        console.warn(`⚠️ Failed sync DB to ${targetPath}:`, e.message);
+      }
     });
   }
 };
