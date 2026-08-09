@@ -22,6 +22,7 @@ const pageTitles = {
   barang: { title: 'Menu Barang (In-House)', subtitle: 'Kelola stok kertas, ATK, dan produk cetak mandiri' },
   vendor: { title: 'Menu Vendor Outsource', subtitle: 'Kelola mitra cetak luar, spanduk, banner & margin HPP' },
   laporan: { title: 'Menu Laporan Transaksi & Keuangan', subtitle: 'Riwayat transaksi penjualan dan analisis Laba Kotor' },
+  pembukuan: { title: 'Menu Pembukuan Kas & Laba Rugi', subtitle: 'Pencatatan Gaji Karyawan, Listrik/Utilitas, Kas Masuk/Keluar & Laba Bersih Toko' },
   excel: { title: 'Kelola Data via Excel', subtitle: 'Ekspor data master & impor massal via file Excel (.xlsx)' },
   users: { title: 'Kelola Akun Kasir & User', subtitle: 'Manajemen akun login kasir, reset password, dan status akses' },
   logs: { title: 'Audit Log Aktivitas User', subtitle: 'Rekam jejak aktivitas kerja kasir, login, dan transaksi real-time' },
@@ -212,6 +213,9 @@ async function refreshCurrentTabData() {
       break;
     case 'laporan':
       await loadReports();
+      break;
+    case 'pembukuan':
+      await loadPembukuanData();
       break;
   }
 }
@@ -1559,6 +1563,179 @@ function exportCurrentBarcodeWord() {
     return;
   }
   exportBarcodeWord(state.previewProductId);
+}
+
+/* ==========================================================================
+   MENU PEMBUKUAN LOGIC (KAS MASUK, KAS KELUAR, LABA RUGI OTOMATIS)
+   ========================================================================== */
+async function loadPembukuanData() {
+  try {
+    // 1. Fetch Profit Loss Report
+    const plRes = await fetchAPI('/ledger/reports/profit-loss');
+    if (plRes && plRes.success && plRes.data) {
+      const { revenue, cogs, expenses, net_profit } = plRes.data;
+      document.getElementById('plTotalRevenue').textContent = formatRupiah(revenue.total_revenue);
+      document.getElementById('plSalesCount').textContent = `${revenue.transaction_count} Transaksi Kasir`;
+      document.getElementById('plTotalHpp').textContent = formatRupiah(cogs.total_hpp);
+      document.getElementById('plTotalExpenses').textContent = formatRupiah(expenses.total_expenses);
+      
+      const netProfitElem = document.getElementById('plNetProfit');
+      netProfitElem.textContent = formatRupiah(net_profit);
+      if (net_profit < 0) {
+        netProfitElem.style.color = '#ef4444';
+      } else {
+        netProfitElem.style.color = '#10b981';
+      }
+    }
+
+    // 2. Fetch Journal Entries Table
+    const typeFilter = document.getElementById('filterLedgerType')?.value || '';
+    const paymentFilter = document.getElementById('filterLedgerPayment')?.value || '';
+
+    let url = '/ledger/entries?';
+    if (typeFilter) url += `type=${encodeURIComponent(typeFilter)}&`;
+    if (paymentFilter) url += `payment_method=${encodeURIComponent(paymentFilter)}&`;
+
+    const entriesRes = await fetchAPI(url);
+    const tbody = document.getElementById('ledgerJournalTableBody');
+    if (!tbody) return;
+
+    if (entriesRes && entriesRes.success && Array.isArray(entriesRes.data)) {
+      const entries = entriesRes.data;
+      if (entries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">Belum ada transaksi kas yang dicatat. Klik "+ Input Kas Masuk" atau "- Input Kas Keluar" untuk memulai.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = entries.map(item => {
+        const isIncome = item.type === 'Kas Masuk';
+        const badgeClass = isIncome ? 'badge-success' : 'badge-danger';
+        const amountColor = isIncome ? 'color: #10b981; font-weight: 700;' : 'color: #ef4444; font-weight: 700;';
+        const formattedDate = item.entry_date ? new Date(item.entry_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
+
+        return `
+          <tr>
+            <td><code>${item.entry_no || '-'}</code></td>
+            <td>${formattedDate}</td>
+            <td><strong>${item.account_name || 'Kas'}</strong> <small class="text-muted">(${item.account_code || ''})</small></td>
+            <td><span class="badge ${badgeClass}">${item.type}</span></td>
+            <td style="${amountColor}">${isIncome ? '+' : '-'}${formatRupiah(item.amount)}</td>
+            <td><span class="badge badge-secondary">${item.payment_method || 'Tunai'}</span></td>
+            <td>${item.description || '-'} ${item.reference_no ? `<br><small class="text-muted">Ref: ${item.reference_no}</small>` : ''}</td>
+            <td>${item.created_by || 'Admin'}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteJournalEntry(${item.id})" title="Hapus Transaksi Kas Ini">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">Gagal memuat jurnal pembukuan.</td></tr>`;
+    }
+  } catch (err) {
+    console.error('Error loadPembukuanData:', err);
+    showToast('Gagal memuat data pembukuan: ' + err.message, 'danger');
+  }
+}
+
+async function openModalJournalEntry(type = 'Kas Keluar') {
+  document.getElementById('journalType').value = type;
+  const titleElem = document.getElementById('modalJournalTitle');
+  if (titleElem) {
+    titleElem.innerHTML = type === 'Kas Masuk' 
+      ? `<i class="fa-solid fa-plus-circle" style="color:#10b981;"></i> Form Input Kas Masuk (Pemasukan)` 
+      : `<i class="fa-solid fa-minus-circle" style="color:#ef4444;"></i> Form Input Kas Keluar (Pengeluaran / Beban)`;
+  }
+
+  // Populate Accounts dropdown
+  try {
+    const res = await fetchAPI('/ledger/accounts');
+    const select = document.getElementById('journalAccountId');
+    if (select && res && res.success) {
+      select.innerHTML = '<option value="">-- Pilih Kategori Akun --</option>' + 
+        res.data.map(acc => `<option value="${acc.id}">[${acc.code}] ${acc.name} (${acc.type})</option>`).join('');
+    }
+  } catch (e) {
+    console.warn('Gagal memuat kategori akun:', e);
+  }
+
+  // Set default date to today
+  const dateInput = document.getElementById('journalDate');
+  if (dateInput) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  document.getElementById('journalAmount').value = '';
+  document.getElementById('journalDescription').value = '';
+  document.getElementById('journalReferenceNo').value = '';
+
+  openModal('modalJournalEntry');
+}
+
+async function handleJournalEntrySubmit(event) {
+  event.preventDefault();
+  const type = document.getElementById('journalType').value;
+  const account_id = document.getElementById('journalAccountId').value;
+  const payment_method = document.getElementById('journalPaymentMethod').value;
+  const amount = parseFloat(document.getElementById('journalAmount').value) || 0;
+  const entry_date = document.getElementById('journalDate').value;
+  const description = document.getElementById('journalDescription').value;
+  const reference_no = document.getElementById('journalReferenceNo').value;
+
+  if (!account_id || !amount || amount <= 0 || !description) {
+    showToast('Harap lengkapi akun, nominal, dan keterangan transaksi.', 'danger');
+    return;
+  }
+
+  const btn = document.getElementById('btnSubmitJournal');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+
+  try {
+    const res = await fetchAPI('/ledger/entries', 'POST', {
+      type,
+      account_id,
+      payment_method,
+      amount,
+      entry_date,
+      description,
+      reference_no
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+
+    if (res && res.success) {
+      showToast(`Berhasil mencatat transaksi ${type}!`);
+      closeModal('modalJournalEntry');
+      await loadPembukuanData();
+    } else {
+      showToast(res.message || 'Gagal menyimpan transaksi kas.', 'danger');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+    showToast('Error saat menyimpan jurnal: ' + err.message, 'danger');
+  }
+}
+
+async function deleteJournalEntry(id) {
+  if (!confirm('Apakah Anda yakin ingin menghapus transaksi kas ini dari pembukuan?')) return;
+
+  try {
+    const res = await fetchAPI(`/ledger/entries/${id}`, 'DELETE');
+    if (res && res.success) {
+      showToast('Transaksi kas berhasil dihapus!');
+      await loadPembukuanData();
+    } else {
+      showToast(res.message || 'Gagal menghapus transaksi.', 'danger');
+    }
+  } catch (err) {
+    showToast('Error menghapus transaksi: ' + err.message, 'danger');
+  }
 }
 
 /* ==========================================================================

@@ -56,6 +56,10 @@
           <i class="fa-solid fa-file-invoice-dollar"></i>
           <span>Menu Laporan Transaksi</span>
         </a>
+        <a href="#pembukuan" class="nav-link" data-tab="pembukuan">
+          <i class="fa-solid fa-book-journal-whills"></i>
+          <span>Menu Pembukuan Kas</span>
+        </a>
 
         <div class="nav-section">EXCEL & DOKUMEN</div>
         <a href="#excel" class="nav-link" data-tab="excel">
@@ -476,6 +480,105 @@
                 </thead>
                 <tbody id="vendorMarginReportBody">
                   <tr><td colspan="6" class="text-center py-4">Memuat laporan vendor margin...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB PEMBUKUAN: PEMBUKUAN KAS & LAPORAN LABA RUGI OTOMATIS -->
+      <section id="tab-pembukuan" class="tab-page">
+        <!-- Action Bar -->
+        <div class="action-bar mb-4" style="background: #ffffff; padding: 16px 20px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-book-journal-whills" style="color: #6366f1;"></i> Pembukuan Kas & Laporan Laba Rugi Otomatis
+            </h3>
+            <p class="subtitle" style="margin: 0; font-size: 13px; color: #64748b;">Pencatatan Gaji Karyawan, Listrik/Utilitas, Pembelian Perlengkapan, dan Perhitungan Laba Bersih</p>
+          </div>
+          <div class="action-buttons" style="display: flex; gap: 10px;">
+            <button class="btn btn-success" onclick="openModalJournalEntry('Kas Masuk')">
+              <i class="fa-solid fa-plus"></i> + Input Kas Masuk
+            </button>
+            <button class="btn btn-danger" onclick="openModalJournalEntry('Kas Keluar')">
+              <i class="fa-solid fa-minus"></i> - Input Kas Keluar
+            </button>
+          </div>
+        </div>
+
+        <!-- Profit Loss Cards -->
+        <div class="stats-grid mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+          <div class="stat-card stat-primary">
+            <div class="stat-icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Total Omset & Pemasukan</span>
+              <h2 class="stat-value" id="plTotalRevenue">Rp 0</h2>
+              <span class="stat-sub" id="plSalesCount">0 Transaksi Kasir</span>
+            </div>
+          </div>
+          <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="fa-solid fa-boxes-packing"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">HPP / Modal Terjual</span>
+              <h2 class="stat-value" id="plTotalHpp">Rp 0</h2>
+              <span class="stat-sub">Vendor & Kertas Terjual</span>
+            </div>
+          </div>
+          <div class="stat-card stat-danger">
+            <div class="stat-icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Beban Operasional</span>
+              <h2 class="stat-value" id="plTotalExpenses">Rp 0</h2>
+              <span class="stat-sub">Gaji, Listrik, Operasional</span>
+            </div>
+          </div>
+          <div class="stat-card stat-success" style="border-left: 4px solid #10b981;">
+            <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="stat-content">
+              <span class="stat-label">Laba Bersih Toko</span>
+              <h2 class="stat-value" id="plNetProfit" style="color: #10b981;">Rp 0</h2>
+              <span class="stat-sub">Omset - HPP - Beban</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Journal Entries History Table -->
+        <div class="card mb-4">
+          <div class="card-header space-between" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3><i class="fa-solid fa-receipt"></i> Buku Besar & Jurnal Transaksi Kas Toko</h3>
+            <div style="display: flex; gap: 10px;">
+              <select id="filterLedgerType" class="form-control form-control-sm" onchange="loadPembukuanData()" style="padding: 6px 12px; font-size: 13px;">
+                <option value="">Semua Transaksi (Kas Masuk & Keluar)</option>
+                <option value="Kas Masuk">Kas Masuk Saja</option>
+                <option value="Kas Keluar">Kas Keluar Saja</option>
+              </select>
+              <select id="filterLedgerPayment" class="form-control form-control-sm" onchange="loadPembukuanData()" style="padding: 6px 12px; font-size: 13px;">
+                <option value="">Semua Metode (Tunai, QRIS, Bank)</option>
+                <option value="Tunai">Tunai / Cash</option>
+                <option value="QRIS">QRIS</option>
+                <option value="Bank / Transfer">Bank / Transfer</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>No. Jurnal</th>
+                    <th>Tanggal</th>
+                    <th>Kategori Akun Kas</th>
+                    <th>Jenis</th>
+                    <th>Nominal (Rp)</th>
+                    <th>Metode</th>
+                    <th>Keterangan / Catatan</th>
+                    <th>Dibuat Oleh</th>
+                    <th class="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="ledgerJournalTableBody">
+                  <tr><td colspan="9" class="text-center py-4">Memuat data pembukuan...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1109,6 +1212,65 @@
         <button type="button" class="btn btn-outline-primary" onclick="exportCurrentBarcodeWord()"><i class="fa-solid fa-file-word"></i> Export Barang Ini (.docx)</button>
         <button type="button" class="btn btn-primary" onclick="exportBarcodeWord()"><i class="fa-solid fa-file-word"></i> Export Seluruh Barcode (.docx)</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Input Journal Entry (Kas Masuk & Kas Keluar) -->
+  <div class="modal-backdrop" id="modalJournalEntry">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalJournalTitle"><i class="fa-solid fa-money-bill-wave"></i> Form Input Transaksi Kas</h3>
+        <button class="btn-close" onclick="closeModal('modalJournalEntry')">&times;</button>
+      </div>
+      <form id="formJournalEntry" onsubmit="handleJournalEntrySubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="journalType" value="Kas Keluar">
+          
+          <div class="form-row mb-3">
+            <div class="form-group col-6">
+              <label for="journalAccountId">Kategori Akun Pembukuan <span class="text-danger">*</span></label>
+              <select id="journalAccountId" class="form-control" required>
+                <option value="">-- Pilih Akun Pembukuan --</option>
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label for="journalPaymentMethod">Metode Pembayaran</label>
+              <select id="journalPaymentMethod" class="form-control">
+                <option value="Tunai">Tunai / Cash</option>
+                <option value="QRIS">QRIS Digital</option>
+                <option value="Bank / Transfer">Bank / Transfer</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row mb-3">
+            <div class="form-group col-6">
+              <label for="journalAmount">Nominal Uang (Rp) <span class="text-danger">*</span></label>
+              <input type="number" id="journalAmount" class="form-control" placeholder="Contoh: 150000" min="1" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="journalDate">Tanggal Transaksi</label>
+              <input type="date" id="journalDate" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="journalDescription">Keterangan / Keperluan Transaksi <span class="text-danger">*</span></label>
+            <input type="text" id="journalDescription" class="form-control" placeholder="Contoh: Bayar listrik bulanan toko / Gaji kasir shift 1" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="journalReferenceNo">No. Referensi / Struk (Opsional)</label>
+            <input type="text" id="journalReferenceNo" class="form-control" placeholder="Contoh: INV-PLN-12345 / TRX-001">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalJournalEntry')">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitJournal">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Transaksi Kas
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

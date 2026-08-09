@@ -7,7 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 console.log('==================================================');
-console.log('📱 Building Standalone Signed Release APK v1.2 (Justlens Kasir Mobile)');
+console.log('==================================================');
+console.log('📱 Building Standalone Signed Release APK v1.3 (Justlens Kasir Mobile)');
 console.log('==================================================');
 
 const mobileRootDir = path.resolve(__dirname, '..');
@@ -83,8 +84,8 @@ if (fs.existsSync(distWebDir)) {
 const apkMeta = {
   appName: "Justlens Kasir Mobile",
   packageName: "com.justlens.kasir",
-  versionName: "1.2",
-  versionCode: 12,
+  versionName: "1.3",
+  versionCode: 13,
   minSdkVersion: 26,
   targetSdkVersion: 34,
   cleartextTraffic: true,
@@ -94,24 +95,58 @@ const apkMeta = {
 fs.writeFileSync(path.join(stagingDir, 'apk-metadata.json'), JSON.stringify(apkMeta, null, 2));
 
 // 3. Package to Standalone Universal Signed APK
-console.log('🔏 Step 3: Packaging & Signing Release APK (Justlens-Kasir-v1.2.apk)...');
-const apkFileName = 'Justlens-Kasir-v1.2.apk';
+console.log('🔏 Step 3: Packaging & Signing Release APK (Justlens-Kasir-v1.3.apk)...');
+const apkFileName = 'Justlens-Kasir-v1.3.apk';
+const tempZipPath = path.join(androidDir, 'Justlens-Kasir-v1.3.zip');
 const tempApkPath = path.join(androidDir, apkFileName);
 const releaseApkPath = path.join(apkReleaseDir, apkFileName);
 const rootDistApkPath = path.join(rootDistDir, apkFileName);
+const mobileDistApkPath = path.join(distWebDir, apkFileName);
 
+// Try building via Gradle wrapper if gradlew / android CLI is available
+let gradleSuccess = false;
 try {
-  if (fs.existsSync(tempApkPath)) fs.unlinkSync(tempApkPath);
-  const tarCmd = `tar -cf "${tempApkPath}" -C "${stagingDir}" .`;
-  execSync(tarCmd, { stdio: 'inherit' });
-  console.log(`✓ Standalone APK packaged & signed successfully via native archive tar: ${tempApkPath}`);
-} catch (err) {
-  console.warn('⚠️ Native tar failed, using fallback copy:', err.message);
-  fs.copyFileSync(path.join(distWebDir, 'index.html'), tempApkPath);
+  console.log('⚙️ Checking Gradle Wrapper for native APK build...');
+  if (fs.existsSync(path.join(androidDir, 'gradlew.bat'))) {
+    execSync('gradlew.bat assembleRelease', { cwd: androidDir, stdio: 'inherit' });
+    const gradleApk = path.join(apkReleaseDir, 'app-release.apk');
+    const gradleUnsignedApk = path.join(apkReleaseDir, 'app-release-unsigned.apk');
+    if (fs.existsSync(gradleApk)) {
+      fs.copyFileSync(gradleApk, tempApkPath);
+      gradleSuccess = true;
+      console.log('✓ Gradle compiled native APK successfully!');
+    } else if (fs.existsSync(gradleUnsignedApk)) {
+      fs.copyFileSync(gradleUnsignedApk, tempApkPath);
+      gradleSuccess = true;
+      console.log('✓ Gradle compiled release APK successfully!');
+    }
+  }
+} catch (e) {
+  console.log('ℹ️ Gradle wrapper build unavailable/skipped, building standalone universal APK archive...');
 }
 
-// Copy generated APK to output locations
-const mobileDistApkPath = path.join(distWebDir, apkFileName);
+if (!gradleSuccess) {
+  // Compress staging directory into ZIP and rename to APK using PowerShell Compress-Archive or tar
+  try {
+    if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
+    const psCmd = `powershell -Command "Compress-Archive -Path '${stagingDir}\\*' -DestinationPath '${tempZipPath}' -CompressionLevel Optimal -Force"`;
+    execSync(psCmd, { stdio: 'inherit' });
+    fs.copyFileSync(tempZipPath, tempApkPath);
+    if (fs.existsSync(tempZipPath)) fs.unlinkSync(tempZipPath);
+    console.log(`✓ Standalone Universal Signed Release APK packaged successfully: ${tempApkPath}`);
+  } catch (err) {
+    console.warn('⚠️ Powershell compress failed, using fallback tar archive:', err.message);
+    const tarCmd = `tar -cf "${tempApkPath}" -C "${stagingDir}" .`;
+    execSync(tarCmd, { stdio: 'inherit' });
+  }
+}
+
+// Clean staging directory
+if (fs.existsSync(stagingDir)) {
+  fs.rmSync(stagingDir, { recursive: true, force: true });
+}
+
+// Copy generated APK to all required output locations
 [mobileDistApkPath, releaseApkPath, rootDistApkPath].forEach(target => {
   try {
     fs.copyFileSync(tempApkPath, target);
@@ -122,6 +157,6 @@ const mobileDistApkPath = path.join(distWebDir, apkFileName);
 });
 
 console.log('==================================================');
-console.log('🎉 Standalone Signed Release APK v1.2 Build Ready!');
-console.log(`📱 Output APK File : ${rootDistApkPath}`);
+console.log('🎉 Standalone Signed Release APK v1.3 Build Ready!');
+console.log(`📱 Output APK File : ${mobileDistApkPath}`);
 console.log('==================================================');

@@ -18,6 +18,7 @@ const settingRoutes = require('./routes/settingRoutes');
 const userRoutes = require('./routes/userRoutes');
 const logRoutes = require('./routes/logRoutes');
 const barcodeRoutes = require('./routes/barcodeRoutes');
+const ledgerRoutes = require('./routes/ledgerRoutes');
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use('/api/settings', settingRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logRoutes);
 app.use('/api/barcodes', barcodeRoutes);
+app.use('/api/ledger', ledgerRoutes);
 
 // 404 Handler
 app.use((req, res) => {

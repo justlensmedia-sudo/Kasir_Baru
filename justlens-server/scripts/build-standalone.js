@@ -92,9 +92,9 @@ if (fs.existsSync(installerSrc)) {
   console.log('✓ Copied installer.iss to dist/');
 }
 
-// 5. Create Justlens-Server-Setup-v1.2.exe installer executable in dist/ & root dist/
+// 5. Create Justlens-Server-Setup-v1.3.exe installer executable in dist/ & root dist/
 const compiledExe = path.join(distDir, 'justlens-server.exe');
-const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.2.exe');
+const targetSetupExe = path.join(distDir, 'Justlens-Server-Setup-v1.3.exe');
 const rootDistDir = path.resolve(rootDir, '..', 'dist');
 if (!fs.existsSync(rootDistDir)) {
   fs.mkdirSync(rootDistDir, { recursive: true });
@@ -104,8 +104,8 @@ if (fs.existsSync(compiledExe)) {
   try {
     fs.copyFileSync(compiledExe, targetSetupExe);
     fs.copyFileSync(compiledExe, path.join(rootDistDir, 'justlens-server.exe'));
-    fs.copyFileSync(compiledExe, path.join(rootDistDir, 'Justlens-Server-Setup-v1.2.exe'));
-    console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.2.exe');
+    fs.copyFileSync(compiledExe, path.join(rootDistDir, 'Justlens-Server-Setup-v1.3.exe'));
+    console.log('✓ Output installer executable generated: dist/Justlens-Server-Setup-v1.3.exe');
     console.log('✓ Synced executables to root dist/ directory.');
   } catch (err) {
     console.warn('⚠️ Gagal menyalin installer executable:', err.message);

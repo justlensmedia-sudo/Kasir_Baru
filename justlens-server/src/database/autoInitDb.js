@@ -153,9 +153,53 @@ const autoInitDb = async () => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
       );
+
+      CREATE TABLE IF NOT EXISTS ledger_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        description TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS journal_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entry_no TEXT UNIQUE NOT NULL,
+        account_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL DEFAULT 0,
+        payment_method TEXT DEFAULT 'Tunai',
+        category TEXT,
+        description TEXT,
+        reference_no TEXT,
+        created_by TEXT DEFAULT 'Admin',
+        entry_date DATE DEFAULT (CURRENT_DATE),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (account_id) REFERENCES ledger_accounts(id) ON DELETE RESTRICT
+      );
     `;
 
     await exec(schemaSql);
+
+    // Auto seed default ledger accounts if none exist
+    const accountCount = await query('SELECT COUNT(*) as count FROM ledger_accounts');
+    if (accountCount[0].count === 0) {
+      const initialAccounts = [
+        ['101', 'Kas Tunai Toko', 'Aset', 'Kas tunai fisik di laci kasir toko'],
+        ['102', 'Bank / QRIS Toko', 'Aset', 'Saldo penerimaan digital QRIS & transfer bank'],
+        ['401', 'Pendapatan Penjualan Kasir', 'Pemasukan', 'Pemasukan dari transaksi penjualan kasir POS'],
+        ['402', 'Pendapatan Lain-lain', 'Pemasukan', 'Pemasukan kas di luar penjualan utama'],
+        ['501', 'Beban Gaji Karyawan', 'Pengeluaran', 'Pengeluaran gaji dan insentif staf toko'],
+        ['502', 'Beban Listrik, Air & Internet', 'Pengeluaran', 'Tagihan rutin bulanan utilitas toko'],
+        ['503', 'Beban Perlengkapan & ATK Toko', 'Pengeluaran', 'Pembelian kertas, pita printer, & kebutuhan toko'],
+        ['504', 'Beban Sewa & Operasional', 'Pengeluaran', 'Biaya sewa gedung & operasional rutin'],
+        ['505', 'Beban Vendor Outsource', 'Pengeluaran', 'Pembayaran modal spanduk/banner vendor luar']
+      ];
+      for (const acc of initialAccounts) {
+        await run('INSERT INTO ledger_accounts (code, name, type, description) VALUES (?, ?, ?, ?)', acc);
+      }
+    }
 
     // Auto seed a default supplier if none exists so mandatory FK checks pass for existing data
     const supplierCount = await query('SELECT COUNT(*) as count FROM suppliers');
