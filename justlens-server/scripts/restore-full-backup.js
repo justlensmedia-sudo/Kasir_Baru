@@ -164,6 +164,17 @@ const restoreFullBackup = async () => {
   console.log(`  - 📜 Total Stok Bahan (Materials): ${matCount[0].c}`);
   console.log(`  - ✂️ Total Variasi Finishing: ${finCount[0].c}`);
   console.log('==================================================');
+
+  // Sync DB copies for alternate DB_PATH names (database.sqlite, justlens_prod.sqlite)
+  const srcDb = path.join(__dirname, '../src/database/justlens.sqlite');
+  if (fs.existsSync(srcDb)) {
+    ['database.sqlite', 'justlens_prod.sqlite'].forEach(dbName => {
+      try {
+        fs.copyFileSync(srcDb, path.join(__dirname, '../src/database', dbName));
+        console.log(`✓ Synchronized DB backup copy: src/database/${dbName}`);
+      } catch (e) {}
+    });
+  }
 };
 
 if (require.main === module) {
