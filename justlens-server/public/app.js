@@ -677,10 +677,11 @@ function renderOutsourceProductTable() {
   }).join('');
 }
 
-function openModalOutsourceProduct(productId = null) {
+async function openModalOutsourceProduct(productId = null) {
   const form = document.getElementById('formOutsourceProduct');
   form.reset();
 
+  let selectedSupplierId = null;
   if (productId) {
     const p = state.productsOutsource.find(item => item.id === productId);
     if (p) {
@@ -691,18 +692,28 @@ function openModalOutsourceProduct(productId = null) {
       document.getElementById('outsourceProductName').value = p.name;
       document.getElementById('outsourceBasePrice').value = p.base_price;
       document.getElementById('outsourceSellPrice').value = p.sell_price;
+      selectedSupplierId = p.supplier_id;
     }
   } else {
     document.getElementById('modalOutsourceProductTitle').innerHTML = `<i class="fa-solid fa-tags"></i> Form Input Produk Cetak Outsource`;
     document.getElementById('outsourceProductId').value = '';
     document.getElementById('outsourceProductCode').value = 'PRD-OUT-' + Math.floor(100 + Math.random() * 900);
   }
+
+  await populateSupplierDropdown('outsourceProductSupplier', selectedSupplierId);
   openModal('modalOutsourceProduct');
 }
 
 async function handleOutsourceProductSubmit(e) {
   e.preventDefault();
   const id = document.getElementById('outsourceProductId').value;
+  const supplierVal = document.getElementById('outsourceProductSupplier').value;
+
+  if (!supplierVal) {
+    showToast('Supplier Utama Wajib Dipilih!', 'error');
+    return;
+  }
+
   const body = {
     code: document.getElementById('outsourceProductCode').value.trim(),
     category: document.getElementById('outsourceProductCategory').value,
@@ -711,7 +722,8 @@ async function handleOutsourceProductSubmit(e) {
     is_metered: 1,
     stock: 999,
     base_price: parseInt(document.getElementById('outsourceBasePrice').value) || 0,
-    sell_price: parseInt(document.getElementById('outsourceSellPrice').value) || 0
+    sell_price: parseInt(document.getElementById('outsourceSellPrice').value) || 0,
+    supplier_id: parseInt(supplierVal, 10)
   };
 
   try {
@@ -1209,26 +1221,40 @@ function openModalImportExcel() {
   openModal('modalImportExcel');
 }
 
-async function handleExcelImportSubmit(e) {
+async function handleExcelImportSubmit(e, endpointUrl = null, buttonId = null) {
   e.preventDefault();
-  const fileInput = document.getElementById('excelFileInput');
-  if (!fileInput || !fileInput.files[0]) {
-    showToast('Harap pilih file Excel terlebih dahulu.', 'error');
+  const form = e.target;
+  const fileInput = form.querySelector('input[type="file"]') || document.getElementById('excelFileInput');
+  const targetEndpoint = endpointUrl || `${API_BASE}/products/import-excel`;
+  const targetBtn = buttonId ? document.getElementById(buttonId) : document.getElementById('btnSubmitImportExcel');
+
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+    showToast('Harap pilih file Excel (.xlsx) terlebih dahulu.', 'error');
     return;
   }
 
-  const btn = document.getElementById('btnSubmitImportExcel');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+  const selectedFile = fileInput.files[0];
+  console.log(`[Excel Import] File terbaca: ${selectedFile.name} (${selectedFile.size} bytes, type: ${selectedFile.type})`);
+  showToast(`File terpilih: ${selectedFile.name}. Mengunggah...`);
+
+  if (targetBtn) {
+    targetBtn.disabled = true;
+    targetBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
   }
 
   try {
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
+    formData.append('file', selectedFile);
 
-    const res = await fetch(`${API_BASE}/products/import-excel`, {
+    const token = localStorage.getItem('justlens_token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const url = targetEndpoint.startsWith('http') ? targetEndpoint : (targetEndpoint.startsWith('/api') ? targetEndpoint : `${API_BASE}${targetEndpoint}`);
+
+    const res = await fetch(url, {
       method: 'POST',
+      headers,
       body: formData
     });
 
@@ -1237,15 +1263,20 @@ async function handleExcelImportSubmit(e) {
       throw new Error(result.message || 'Gagal mengimpor file Excel');
     }
 
-    showToast(result.message);
-    closeModal('modalImportExcel');
-    await loadBarang();
+    console.log('[Excel Import] Berhasil:', result);
+    showToast(result.message || 'Import Excel Berhasil!');
+    if (document.getElementById('modalImportExcel')) closeModal('modalImportExcel');
+    if (typeof loadBarang === 'function') await loadBarang();
+    if (typeof loadSuppliers === 'function') await loadSuppliers();
+    if (typeof loadVendorsAndOutsource === 'function') await loadVendorsAndOutsource();
+    form.reset();
   } catch (err) {
+    console.error('[Excel Import] Error:', err);
     showToast(err.message || 'Gagal mengimpor Excel', 'error');
   } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-upload"></i> Unggah & Impor Barang';
+    if (targetBtn) {
+      targetBtn.disabled = false;
+      targetBtn.innerHTML = '<i class="fa-solid fa-file-arrow-up"></i> Import / Upload Excel';
     }
   }
 }
