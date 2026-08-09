@@ -103,8 +103,11 @@ const rootDistApkPath = path.join(rootDistDir, apkFileName);
 const mobileDistApkPath = path.join(distWebDir, apkFileName);
 
 // Ensure JDK 17 and Android SDK paths for Gradle execution
-if (!process.env.JAVA_HOME || process.env.JAVA_HOME.includes('1.8')) {
-  const possibleJdks = ['C:\\Users\\jonat\\.jdks\\jbr-17.0.14', 'C:\\Program Files\\Android\\Android Studio\\jbr'];
+const JDK17_PATH = 'C:\\Users\\jonat\\.jdks\\jbr-17.0.14';
+if (fs.existsSync(JDK17_PATH)) {
+  process.env.JAVA_HOME = JDK17_PATH;
+} else if (!process.env.JAVA_HOME || process.env.JAVA_HOME.includes('1.8')) {
+  const possibleJdks = ['C:\\Program Files\\Android\\Android Studio\\jbr'];
   for (const jdk of possibleJdks) {
     if (fs.existsSync(jdk)) {
       process.env.JAVA_HOME = jdk;
